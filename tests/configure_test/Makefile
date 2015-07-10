@@ -12,5 +12,5 @@ test_output:
 	${MAKE} ${MAKEFLAGS} -f mkc_test_preset.mk -f mkc_test.mk \
 		cleandir > /dev/null 2>&1
 
-.include <mkc.minitest.mk>
-.include <mkc.mk>
+include mkc.minitest.mk
+include mkc.mk
