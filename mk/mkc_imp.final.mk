@@ -3,41 +3,41 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef MKC_IMP.FINAL.MK
+ifndef MKC_IMP.FINAL.MK
 MKC_IMP.FINAL.MK = 1
 
-.PATH: ${SRC_PATHADD}
+VPATH = ${SRC_PATHADD}
 
 LDADD +=	${DPLIBS} # DPLIBS is deprecated (2012-08-13)
 LDADD +=	${LDADD_${PROJECTNAME}}
 
 LDFLAGS +=	${LDFLAGS_${PROJECTNAME}}
 
-.if !empty(SRCS:U:M*.l)
+ifneq ($(filter %.l,${SRCS}),)
 LDADD +=	${LEXLIB}
-.endif
+endif
 
-.for i in ${EXPORT_VARNAMES}
-.if empty(NOEXPORT_VARNAMES:U:M${i})
-export_cmd  +=	${i}=${${i}:Q}; export ${i};
-.endif
-.endfor
+$(foreach i,$(filter-out ${NOEXPORT_VARNAMES},${EXPORT_VARNAMES}),$(eval \
+export_cmd += ${i}=$(call shell-quote,${${i}}); export ${i}; \
+))
 
-.if ${MKRELOBJDIR} == "yes" && defined(SRCTOP)
-export_cmd  +=	MAKEOBJDIR=${.OBJDIR}/${.TARGET:C/^.*-//}; \
+ifeq (${MKRELOBJDIR},yes)
+ifdef SRCTOP
+export_cmd  +=	MAKEOBJDIR=${.OBJDIR}/$(call sed,s/^.*-//g,$@); \
 	export MAKEOBJDIR; ${MKDIR} -p $${MAKEOBJDIR};
-.endif
+endif
+endif
 
 ##########
 realdo_clean: mkc_clean
-
-mkc_clean: .PHONY
-.if ${CLEANFILES:U} != ""
+.PHONY: mkc_clean
+mkc_clean:
+ifneq (${CLEANFILES},)
 	-${CLEANFILES_CMD} ${CLEANFILES}
-.endif
-.if ${CLEANDIRS:U} != ""
+endif
+ifneq (${CLEANDIRS},)
 	-${CLEANDIRS_CMD} ${CLEANDIRS}
-.endif
+endif
 
 #####
 distclean: cleandir
@@ -45,25 +45,36 @@ distclean: cleandir
 realdo_cleandir: mkc_cleandir
 
 mkc_cleandir:
-.if ${CLEANFILES:U} != "" || ${DISTCLEANFILES:U} != ""
+ifneq ($(firstword ${DISTCLEANFILES} ${CLEANFILES}),)
 	-${CLEANFILES_CMD} ${DISTCLEANFILES} ${CLEANFILES}
-.endif
-.if ${CLEANDIRS:U} != "" || ${DISTCLEANDIRS:U} != ""
+endif
+ifneq ($(firstword ${DISTCLEANDIRS} ${CLEANDIRS}),)
 	-${CLEANDIRS_CMD} ${DISTCLEANDIRS} ${CLEANDIRS}
-.endif
+endif
 
 ##########
 # pre_, do_, post_ targets
-.for t in ${ALLTARGETS}
-${t}: pre_${t} .WAIT do_${t} .WAIT post_${t}
-pre_${t} do_${t} realdo_${t} post_${t}: .PHONY # ensure existence
-.if !commands(do_${t})
-do_${t}: realdo_${t}
-.endif
-.endfor
 
-${TARGETS}: .PHONY
+define __gen_pre_do_post
+.PHONY: pre_${t} do_${t} realdo_${t} post_${t}
+post_${t}: do_${t}
+do_${t}: pre_${t}
+${t}: post_${t}
+pre_${t}: #ensure existence
+
+do_${t}: realdo_${t}
+endef
+
+$(foreach t,${ALLTARGETS},$(eval $(value __gen_pre_do_post)))
+
+# TODO
+#${t}: pre_${t} .WAIT do_${t} .WAIT post_${t}
+#.if !commands(do_${t})
+#do_${t}: realdo_${t}
+#.endif
+
+.PHONY: ${TARGETS}
 
 ##########
 
-.endif # MKC_IMP.FINAL.MK
+endif # MKC_IMP.FINAL.MK

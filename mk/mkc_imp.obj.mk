@@ -3,32 +3,34 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_IMP_OBJ_MK
+ifndef _MKC_IMP_OBJ_MK
 _MKC_IMP_OBJ_MK := 1
 
 obj: # ensure existence
 
-.ifdef MAKEOBJDIRPREFIX
+ifdef MAKEOBJDIRPREFIX
 __objdir :=	${MAKEOBJDIRPREFIX}${.CURDIR}
-.elif defined(MAKEOBJDIR)
+else ifdef MAKEOBJDIR
 __objdir :=	${MAKEOBJDIR}
-.endif # defined(MAKEOBJDIRPREFIX)
+endif # defined(MAKEOBJDIRPREFIX)
 
-.if defined(__objdir)
+ifdef __objdir
 
-.if ${MKOBJDIRS:tl} == "yes"
-.if !defined(SUBPRJ)
+#TODO what Aleksey whanted here?
+
+ifeq ($(call tolower,${MKOBJDIRS}),yes)
+ifndef SUBPRJ
+
 obj:
 	@${MKDIR} -p ${__objdir}
-.endif # !defined(SUBPRJ)
-.elif ${MKOBJDIRS:tl} == "auto" && !exists(${__objdir}/)
-__objdir_made != if ${MKDIR} -p ${__objdir}; then echo 1; else echo 0; fi
+endif # !defined(SUBPRJ)
+else ifeq ($(call tolower,${MKOBJDIRS}),auto)
 
-.if !${__objdir_made}
-.error could not create ${__objdir}
-.endif # ${__objdir_made}
+obj: | ${__objdir}
 
-.endif # MKOBJDIRS
+${__objdir}:
+	@${MKDIR} -p $@
+endif # MKOBJDIRS
 
-.endif # defined(__objdir)...
-.endif # _MKC_IMP_OBJ_MK
+endif # defined(__objdir)...
+endif # _MKC_IMP_OBJ_MK

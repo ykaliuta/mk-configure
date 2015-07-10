@@ -28,24 +28,18 @@ MKC_AUTO_CFLAGS   :=	${MKC_AUTO_CFLAGS} ${MKC_CFLAGS}
 MKC_AUTO_LDADD    :=	${MKC_AUTO_LDADD} ${MKC_LDADD}
 MKC_AUTO_SRCS     :=	${MKC_AUTO_SRCS} ${MKC_SRCS}
 
-.if !${MKC_NOAUTO:U0}
-.for i in ${MKC_CPPFLAGS}
-CPPFLAGS +=	${i}
-.endfor
-.for i in ${MKC_CFLAGS}
-CFLAGS +=	${i}
-.endfor
-.for i in ${MKC_LDADD}
-LDADD +=	${i}
-.endfor
-.if !${MKC_NOSRCSAUTO:U0}
-.  for i in ${MKC_SRCS}
-SRCS +=		${i}
-.  endfor
-.endif
-.endif # .if MKC_AUTO
+ifneq (${MKC_NOAUTO},1)
 
-.undef MKC_CPPFLAGS
-.undef MKC_CFLAGS
-.undef MKC_LDADD
-.undef MKC_SRCS
+$(eval CPPFLAGS += ${MKC_CPPFLAGS})
+$(eval CFLAGS += ${MKC_CFLAGS})
+$(eval LDADD += ${MKC_LDADD})
+
+ifneq (${MKC_NOSRCSAUTO},1)
+$(eval SRCS +=	${MKC_SRCS})
+endif
+endif # .if MKC_AUTO
+
+undefine MKC_CPPFLAGS
+undefine MKC_CFLAGS
+undefine MKC_LDADD
+undefine MKC_SRCS

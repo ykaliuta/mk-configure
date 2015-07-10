@@ -14,13 +14,13 @@ INTEXTS_REPLS +=	mkfilesdir     ${MKFILESDIR}
 INTEXTS_REPLS +=	syscustomdir   ${BUILTINSDIR}
 INTEXTS_REPLS +=	mkc_libexecdir ${LIBEXECDIR}
 
-.if exists(/usr/xpg4/bin/awk)
+ifneq ($(wildcard /usr/xpg4/bin/awk),)
 # Solaris' /usr/bin/awk is completely broken,
 # /usr/xpg4/bin/awk sucks too but sucks less.
 PROG.awk ?=		/usr/xpg4/bin/awk
-.else
+else
 MKC_REQUIRE_PROGS +=	awk
-.endif
+endif
 
 BMAKE  ?=	bmake
 PS2PDF ?=	ps2pdf

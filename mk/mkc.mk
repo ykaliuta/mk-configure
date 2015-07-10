@@ -3,19 +3,29 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_MK
+ifndef _MKC_MK
 _MKC_MK := 1
 
 init_make_level ?= 0
 
-.if defined(SRCTOP) && ${SRCTOP:U} != ${.CURDIR} && ${.MAKE.LEVEL} == ${init_make_level}
-MKC_CACHEDIR ?=	${SRCTOP}
-.export MKC_CACHEDIR
-.MAIN: all
-.DEFAULT:
-	@set -e; cd ${SRCTOP}; ${MAKE} ${MAKEFLAGS} ${.TARGET}-${.CURDIR:S,${SRCTOP}/,,}
-.else
-.include <mkc_imp.mk>
-.endif #SRCTOP
+_do_top_level :=
 
-.endif # _MKC_MK
+ifdef SRCTOP
+ifneq (${SRCTOP},${CURDIR})
+ifeq (${MAKELEVEL},${init_make_level})
+_do_top_level := T
+endif
+endif
+endif
+
+ifneq ($(_do_top_level),)
+MKC_CACHEDIR ?=	${SRCTOP}
+export MKC_CACHEDIR
+.DEFAULT_GOAL := all
+.DEFAULT:
+	@set -e; cd ${SRCTOP}; ${MAKE} $@-$(patsubst ${SRCTOP}/%,%,${CURDIR})
+else
+include mkc_imp.mk
+endif
+
+endif # _MKC_MK

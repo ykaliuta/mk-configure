@@ -7,131 +7,185 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_MKC_IMP_SUBPRJ_MK)
+ifndef _MKC_IMP_SUBPRJ_MK
 _MKC_IMP_SUBPRJ_MK := 1
 
 EXPORT_VARNAMES +=	STATICLIBS COMPATLIB
 
-.for dir in ${SUBPRJ:S/:/ /g}
-.if empty(NOSUBDIR:U:M${dir})
-__REALSUBPRJ += ${dir}
-.endif
-.endfor
+$(eval \
+__REALSUBPRJ += $(filter-out ${NOSUBDIR},$(subst :, ,${SUBPRJ})))
 
-.for dir in ${NOSUBDIR}
-NODEPS +=	*-${dir}:* *:*-${dir}   *-*/${dir}:* *:*-*/${dir}
-.endfor
-.for dir in ${INTERNALLIBS}
+$(foreach dir,${NOSUBDIR},$(eval \
+NODEPS +=	*-${dir}:* *:*-${dir}   *-*/${dir}:* *:*-*/${dir} \
+))
+
+$(foreach dir,${INTERNALLIBS},$(eval \
 NODEPS +=	install-${dir}:*     install-*/${dir}:* \
-         	uninstall-${dir}:*   uninstall-*/${dir}:* \
-        	installdirs-${dir}:* installdirs-*/${dir}:*
-.endfor
+		uninstall-${dir}:*   uninstall-*/${dir}:* \
+		installdirs-${dir}:* installdirs-*/${dir}:* \
+))
 
-.ifndef SUBDIR
-__REALSUBPRJ := ${__REALSUBPRJ:O:u}
-.endif
+ifndef SUBDIR
+__REALSUBPRJ := $(sort ${__REALSUBPRJ})
+endif
 
-.if !empty(__REALSUBPRJ:M*-*)
-.error "Dash symbol is not allowed inside subdir (${__REALSUBPRJ:M*-*})"
-.endif
+__dash_subdirs := $(strip $(call filter-glob,*-*,${__REALSUBPRJ}))
+ifneq (${__dash_subdirs},)
+$(error Dash symbol is not allowed inside subdir (${__dash_subdirs}))
+endif
 
 SUBPRJ_DFLT ?=	${__REALSUBPRJ}
 
-.for targ in ${TARGETS}
-.for dir in ${__REALSUBPRJ:N.WAIT}
-_ALLTARGDEPS3 +=	${targ}-${dir}
+# for each ${targ}
+# for each ${dir}
+define __real_subprj
+$(eval _ALLTARGDEPS3 +=	${targ}-${dir})
 .PHONY: nodeps-${targ}-${dir}   subdir-${targ}-${dir}   ${targ}-${dir}
-nodeps-${targ}-${dir}: .MAKE __recurse
-       ${targ}-${dir}: .MAKE __recurse
-subdir-${targ}-${dir}: .MAKE __recurse
-.if ${SHORTPRJNAME:tl} == "yes" && ${dir} != ${dir:T}
-_ALLTARGDEPS3 +=	${targ}-${dir:T}
-.PHONY: nodeps-${targ}-${dir:T} subdir-${targ}-${dir:T} ${targ}-${dir:T}
-nodeps-${targ}-${dir:T}: nodeps-${targ}-${dir}
-       ${targ}-${dir:T}:        ${targ}-${dir}
-subdir-${targ}-${dir:T}: subdir-${targ}-${dir}
-_ALLTARGDEPS3 +=	${targ}-${dir}:${targ}-${dir:T}
-.endif
-.endfor # dir
+nodeps-${targ}-${dir}: nodeps-${targ}-%:
+	+${__recurse}
+${targ}-${dir}: ${targ}-%:
+	+${__recurse}
+subdir-${targ}-${dir}: subdir-${targ}-%:
+	+${__recurse}
 
-.if !commands(${targ})
-. for dir in ${SUBPRJ_DFLT}
-dir_ = ${dir}
-.  if ${dir_} == ".WAIT"
-_SUBDIR_${targ} += .WAIT
-.  else
-_SUBDIR_${targ} += ${targ}-${dir}:${targ}
-.  endif # .WAIT
-. endfor # dir
-.for excl in ${NODEPS}
-_SUBDIR_${targ} :=	${_SUBDIR_${targ}:N${excl}}
-.endfor # excl
-_ALLTARGDEPS2 += ${_SUBDIR_${targ}}
-${targ}: ${_SUBDIR_${targ}:S/:${targ}$//}
-.endif #!command(${targ})
+ifeq ($(call tolower,${SHORTPRJNAME}),yes)
+__not_dir := $(notdir ${dir})
+ifneq (${dir},${__not_dir})
+$(eval _ALLTARGDEPS3 +=	${targ}-${__not_dir})
+.PHONY: nodeps-${targ}-${__not_dir}
+.PHONY: subdir-${targ}-${__not_dir}
+.PHONY: .${targ}-${__not_dir}
+nodeps-${targ}-${__not_dir}: nodeps-${targ}-${dir}
+       ${targ}-${__not_dir}:        ${targ}-${dir}
+subdir-${targ}-${__not_dir}: subdir-${targ}-${dir}
+$(eval _ALLTARGDEPS3 +=	${targ}-${dir}:${targ}-${__not_dir})
+endif
+endif
+endef
 
-.for dep prj in ${SUBPRJ:M*\:*:S/:/ /}
-_ALLTARGDEPS += ${targ}-${dep}:${targ}-${prj}
-.endfor # dep prj
+# __prev_dir :=
+# for each ${targ}
+# for each ${dir}
+define __subprj_dflt
+ifeq (${dir},.WAIT)
+__dep := ${targ}-${__prev_dir}
+else
 
-.endfor # targ
+__prev_dir := ${dir}
+ifneq (${__dep},)
+${targ}-${dir}: ${__dep}
+endif
 
-.for dir in ${__REALSUBPRJ}
-.if ${SHORTPRJNAME:tl} == "yes" && ${dir:T} != ${dir}
-SRCDIR_${dir:T}  =	${.CURDIR}/${dir}
-EXPORT_VARNAMES +=	SRCDIR_${dir:T}
-_ALLTARGDEPS    +=	all-${dir}:${dir:T}
-_ALLTARGDEPS3   +=	${dir:T}
-.endif # .if ${SHORTPRJNAME:tl} == "yes" ...
-j:=${dir:S,/,_,g}
-.if empty(j:M*[.]*)
-SRCDIR_${j} = ${.CURDIR}/${dir}
-EXPORT_VARNAMES += SRCDIR_${dir:S,/,_,g}
-.endif # .if dir contains .
-_ALLTARGDEPS += all-${dir}:${dir}
-.endfor # dir
+$(eval _SUBDIR_${targ} += ${targ}-${dir}:${targ})
 
-.for excl in ${NODEPS}
-_ALLTARGDEPS :=	${_ALLTARGDEPS:N${excl}}
-.endfor # excl
+endif # .WAIT
+endef
 
-.for deptarg prjtarg in ${_ALLTARGDEPS:S/:/ /}
+define __target
+
+$(foreach dir,$(filter-out .WAIT,${__REALSUBPRJ}),\
+	$(eval $(value __real_subprj)))
+
+#TODO
+#.if !commands(${targ})
+
+__prev_dir :=
+$(foreach dir,${SUBPRJ_DFLT},$(eval $(value __subprj_dflt)))
+
+$(eval _SUBDIR_${targ} := $(filter-out ${NODEPS},${_SUBDIR_${targ}}))
+$(eval _ALLTARGDEPS2 += ${_SUBDIR_${targ}})
+${targ}: $(patsubst %:${targ},%,${_SUBDIR_${targ}})
+
+#.endif #!command(${targ})
+
+$(foreach DEP:PRJ,$(call filter-glob,*:*,${SUBPRJ}),$(eval \
+_ALLTARGDEPS += ${targ}-$(firstword $(subst :, ,${DEP:PRJ})):${targ}-$(lastword $(subst :, ,${DEP:PRJ})) \
+))
+endef
+
+$(foreach targ,${TARGETS},$(eval $(value __target)))
+
+#################################################
+
+# for each ${dir}
+define __real_subprj2
+ifeq ($(call tolower,${SHORTPRJNAME}),yes)
+__not_dir := $(notdir ${dir})
+ifneq (${dir},${__not_dir})
+$(eval SRCDIR_${__not_dir} = ${.CURDIR}/${dir})
+$(eval EXPORT_VARNAMES +=	SRCDIR_${__not_dir})
+$(eval _ALLTARGDEPS    +=	all-${dir}:${__not_dir})
+$(eval _ALLTARGDEPS3   +=	${__not_dir})
+endif
+endif # .if ${SHORTPRJNAME:tl} == "yes" ...
+
+j := $(subst /,_,${dir})
+ifeq ($(subst .,,${j}),${j})
+$(eval SRCDIR_${j} = ${.CURDIR}/${dir})
+$(eval EXPORT_VARNAMES += SRCDIR_${j})
+endif # .if dir contains .
+$(eval _ALLTARGDEPS += all-${dir}:${dir})
+endef
+
+$(foreach dir,${__REALSUBPRJ},$(eval $(value __real_subprj2)))
+
+##################################################
+
+_SUBDIR_${targ} := $(filter-out ${NODEPS},_SUBDIR_${targ})
+
+_ALLTARGDEPS := $(filter-out ${NODEPS},${_ALLTARGDEPS})
+
+# for each ${prj:dep}
+define __prj_dep
+prjtarg := $(firstword $(subst :, ,${prj:dep}))
+deptarg := $(lastword $(subst :, ,${prj:dep}))
 .PHONY: ${prjtarg} ${deptarg}
 ${prjtarg}: ${deptarg}
-.endfor
+endef
+
+$(foreach prj:dep,${_ALLTARGDEPS},$(eval $(value __prj_dep)))
+
+define __echo
+	@echo ${1}
+
+endef
 
 .PHONY: print_deps
 print_deps:
-.for i in ${_ALLTARGDEPS} ${_ALLTARGDEPS2} ${_ALLTARGDEPS3} ${TARGETS}
-	@echo ${i:S/:/ /}
-.endfor
+	$(foreach i,$(subst :, ,${_ALLTARGDEPS} ${_ALLTARGDEPS2}\
+				${_ALLTARGDEPS3} ${TARGETS}),\
+		$(call __echo,${i}))
 
-__recurse: .USE
-	@targ=${.TARGET:S/^nodeps-//:C/-.*$//};				\
-	dir=${.TARGET:S/^nodeps-//:C/^[^-]*-//};			\
+define __clear_target
+endef
+
+define __recurse
+	@targ=$(patsubst nodeps-%,%,$(call sed,s/-.*//,${.TARGET}))	\
+	dir=$(patsubst nodeps-%,%,$(call sed,s/^[^-]*-//,${.TARGET}));	\
 	if ! test -f ${.CURDIR}/$$dir/Makefile; then exit 0; fi;	\
-	test "$${targ}_${MKINSTALL:tl}" = 'install_no' && exit 0;       \
-	test "$${targ}_${MKINSTALL:tl}" = 'installdirs_no' && exit 0;	\
+	test "$${targ}_$(call tolower,${MKINSTALL})" = 'install_no' && exit 0; \
+	test "$${targ}_$(call tolower,${MKINSTALL})" = 'installdirs_no' && exit 0; \
 	${export_cmd}							\
 	set -e;								\
 	${VERBOSE_ECHO} ================================================== 1>&2;\
 	case "$$dir" in /*)						\
 		${VERBOSE_ECHO} "$$targ ===> $$dir" 1>&2;		\
 		cd "$$dir";						\
-		env "_THISDIR_=$$dir/" ${MAKE} ${MAKEFLAGS} $$targ;		\
+		env "_THISDIR_=$$dir/" ${MAKE} $$targ;		\
 		;;							\
 	*)								\
 		${VERBOSE_ECHO} "$$targ ===> ${_THISDIR_}$$dir" 1>&2;	\
 		cd "${.CURDIR}/$$dir";					\
-		env "_THISDIR_=${_THISDIR_}$$dir/" ${MAKE} ${MAKEFLAGS} $$targ; \
+		env "_THISDIR_=${_THISDIR_}$$dir/" ${MAKE} $$targ; \
 		;;							\
 	esac
+endef
 
 ###########
 SUBPRJSRCTOP =	${.CURDIR}
-.export SUBPRJSRCTOP
+export SUBPRJSRCTOP
 ###########
 
-.include <mkc_imp.objdir.mk>
+include mkc_imp.objdir.mk
 
-.endif # _MKC_IMP_SUBPRJ_MK
+endif # _MKC_IMP_SUBPRJ_MK

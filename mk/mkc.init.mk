@@ -8,25 +8,27 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef OPSYS
+include mkc.gmake.mk
+
+ifndef OPSYS
 OPSYS !=	uname -s
-OPSYS :=	${OPSYS:C/^CYGWIN.*$/Cygwin/}
-.endif
+OPSYS :=	$(patsubst CYGWIN%,Cygwin,${OPSYS})
+endif
 TARGET_OPSYS ?=	${OPSYS}
 
 ###########
 SHORTPRJNAME   ?=	yes
 
 ######################################################################
-.ifndef __initialized__
+ifndef __initialized__
 __initialized__ := 1
 
-.include <mkc_imp.preinit.mk>
+include mkc_imp.preinit.mk
 
-.MAIN:		all
+.DEFAULT_GOAL := all
 
 ###########
-.sinclude <mkc_imp.vars.mk> # .sinclude for bootstrapping
+-include mkc_imp.vars.mk # .sinclude for bootstrapping
 
 #.if defined(MKC_SHELL)
 #.SHELL: name=${MKC_SHELL}
@@ -36,81 +38,91 @@ __initialized__ := 1
 
 ###########
 
-.for p in ${PROGS}
-SRCS.${p} ?=	${p}.c
-SRCS.${p} +=	${SRCS} # SRCS may be changed by mkc_imp.conf.mk
-_srcsall +=	${SRCS.${p}}
-.endfor
+# SRCS may be changed by mkc_imp.conf.mk
+$(foreach p,${PROGS},$(eval \
+SRCS.${p} ?=	${p}.c \
+SRCS.${p} +=	${SRCS}  \
+_srcsall +=	${SRCS.${p}}))
 
-.if defined(PROG)
+ifdef PROG
 PROGS         ?=	${PROG}
 SRCS          ?=	${PROG}.c
 SRCS.${PROG}  ?=	${SRCS}
 _srcsall +=	${SRCS}
-.elif ${.CURDIR:T} == ${COMPATLIB:U}
+else ifeq ($(notdir ${.CURDIR}),${COMPATLIB})
 SRCS     ?=	${FEATURESDIR}/_mkcfake.c
 _srcsall +=	${SRCS}
-.elif defined(LIB)
+else ifdef LIB
 SRCS     ?=	${LIB}.c
 _srcsall +=	${SRCS}
-.endif # defined(PROG)
+endif # defined(PROG)
 
-.if !empty(_srcsall:U:M*.cxx) || !empty(_srcsall:U:M*.cpp) || !empty(_srcsall:U:M*.C) || !empty(_srcsall:U:M*.cc)
+ifneq ($(filter %.cxx %.cpp %.C %.cc,${__srcall}),)
 src_type   +=	cxx
 LDREAL     ?=	${CXX}
-.elif !empty(_srcsall:U:M*.pas) || !empty(_srcsall:U:M*.p)
+else ifneq ($(filter %.pas %.p,${__srcall}),)
 src_type   +=	pas
 LDREAL     ?=	${PC}
-.endif
+endif
 
-.if !empty(_srcsall:U:M*.c) || !empty(_srcsall:U:M*.l) || !empty(_srcsall:U:M*.y) || defined(MKC_SOURCE_FUNCLIBS)
+# last was actually defined(MKC_SOURCE_FUNCLIBS)
+ifneq ($(or $(filter %.c %.l %.y,${__srcall}),${MKC_SOURCE_FUNCLIBS}),)
 src_type  +=	c
-.endif
+endif
 
 src_type  ?=	0
 
 LDREAL  ?=	${CC}
 
-.if defined(PROGS)
+ifdef PROGS
 LDREAL  ?=	${CC}
-.else
+else
 LDREAL  ?=	${LD}
-.endif
+endif
 
-MKC_CACHEDIR ?=	${.OBJDIR} # directory for cache and intermediate files
+# directory for cache and intermediate files
+MKC_CACHEDIR ?=	${.OBJDIR}
 
-init_make_level ?= 0 # for mkc_imp.conf.mk
+# for mkc_imp.conf.mk
+init_make_level ?= 0
 
-.if ${.MAKE.LEVEL} == ${init_make_level}
+ifeq (${MAKELEVEL},${init_make_level})
 SRCTOP       ?=	${.CURDIR}
 OBJTOP       ?=	${.OBJDIR}
-.export SRCTOP OBJTOP
-.endif
+export SRCTOP
+export OBJTOP
+endif
 
 ###########
 
-PROJECTNAME  ?=	${!empty(PROG):?${PROG}:${!empty(LIB):?${LIB}:${.CURDIR:T}}}
+PROJECTNAME ?= $(or ${PROG},${LIB},$(nodir ${CURDIR}))
 
-.if defined(MAKECONF) && exists(${MAKECONF})
-.include "${MAKECONF}"
-.elif defined(MKC_SYSCONFDIR) && exists(${MKC_SYSCONFDIR}/mk-c.conf)
-.include "${MKC_SYSCONFDIR}/mk-c.conf"
-.elif defined(MKC_SYSCONFDIR) && exists(${MKC_SYSCONFDIR}/mk.conf)
-.include "${MKC_SYSCONFDIR}/mk.conf"
-.endif
+ifneq ($(wildcard ${MAKECONF}),)
+include "${MAKECONF}"
+else ifdef MKC_SYSCONFDIR
+ifneq ($(wildcard ${MKC_SYSCONFDIR}/mk-c.conf),)
+include "${MKC_SYSCONFDIR}/mk-c.conf"
+endif
+else ifdef MKC_SYSCONFDIR
+ifneq ($(wildcard ${MKC_SYSCONFDIR}/mk.conf),)
+include "${MKC_SYSCONFDIR}/mk.conf"
+endif
+endif
 
-.if ${OPSYS:Ux} == "SunOS"
+ifeq (${OPSYS},SunOS)
 _MKC_USER   !=	/usr/xpg4/bin/id -un
 _MKC_GROUP  !=	/usr/xpg4/bin/id -gn
-.else
+else
 _MKC_USER   !=	id -un
 _MKC_GROUP  !=	id -gn
-.endif
+endif
 
-.if ${_MKC_USER} != root && ${OPSYS}${_MKC_USER} != "InterixAdministrator"
+ifneq (${_MKC_USER},root)
+ifneq (${OPSYS}${_MKC_USER},InterixAdministrator)
 ROOT_USER  ?=	${_MKC_USER}
 ROOT_GROUP ?=	${_MKC_GROUP}
-.endif
+endif
+endif
 
 BINGRP     ?=	${ROOT_GROUP}
 BINOWN     ?=	${ROOT_USER}
@@ -118,7 +130,7 @@ BINOWN     ?=	${ROOT_USER}
 SHLIBMODE.HP-UX    =	${BINMODE}
 SHLIBMODE.OSF1     =	${BINMODE}
 SHLIBMODE.Interix  =	${BINMODE}
-SHLIBMODE         ?=	${SHLIBMODE.${TARGET_OPSYS}:U${NONBINMODE}}
+SHLIBMODE         ?=	$(or ${SHLIBMODE.${TARGET_OPSYS}},${NONBINMODE})
 
 ROOT_GROUP.NetBSD    =	wheel
 ROOT_GROUP.OpenBSD   =	wheel
@@ -136,14 +148,14 @@ ROOT_USER.OSF1    = 	bin
 ROOT_USER.Interix =	Administrator
 ROOT_USER.Haiku   =	user
 
-ROOT_USER  ?=		${ROOT_USER.${OPSYS}:Uroot}
-ROOT_GROUP ?=		${ROOT_GROUP.${OPSYS}:Uroot}
+ROOT_USER  ?=		$(or ${ROOT_USER.${OPSYS}},root)
+ROOT_GROUP ?=		$(or ${ROOT_GROUP.${OPSYS}},root)
 
 BINMODE.Interix.Administrator    =	775
 NONBINMODE.Interix.Administrator =	664
 
-BINMODE    ?=		${BINMODE.${TARGET_OPSYS}.${ROOT_USER}:U755}
-NONBINMODE ?=		${BINMODE.${TARGET_OPSYS}.${ROOT_USER}:U644}
+BINMODE    ?=		$(or ${BINMODE.${TARGET_OPSYS}.${ROOT_USER}},755)
+NONBINMODE ?=		$(or ${BINMODE.${TARGET_OPSYS}.${ROOT_USER}},644)
 DIRMODE    ?=		${BINMODE}
 
 MANGRP     ?=	${ROOT_GROUP}
@@ -195,33 +207,35 @@ MKINSTALLDIRS   ?=	yes
 DISTCLEANFILES  +=	${MKC_CACHEDIR}/_mkc_*
 
 MKDLL     ?=	no
-.if ${MKDLL:tl} == "only"
+ifeq ($(call tolower,${MKDLL}),only)
 MKDLL      =	yes
 MKSTATICLIB ?=	no
-.else
+else
 MKSTATICLIB ?=	yes
-.endif # MKDLL
+endif # MKDLL
 
-.if !empty(STATICLIBS:M${.CURDIR:T})
+ifneq ($(filter $(notdir ${CURDIR}),${STATICLIBS}),)
 MKPICLIB     ?=	yes
-.else
+else
 MKPICLIB     ?=	no
-.endif
+endif
 
 SHLIB_MINOR ?=	0
-.if ${MKDLL:tl} != "no"
+ifneq ($(call tolower,${MKDLL}),no)
 SHLIB_MAJOR ?=	1
-.endif # MKDLL
+endif # MKDLL
 
 MKPROFILELIB    ?=	no
 
-.if defined(SHLIB_MAJOR) && empty(STATICLIBS:M${.CURDIR:T})
+ifdef SHLIB_MAJOR
+ifeq ($(filter $(notdir ${CURDIR}),${STATICLIBS}),)
 MKSHLIB  ?=	yes
-.else
+endif
+endif # SHLIB_MAJOR
+# else
 MKSHLIB  ?=	no
-.endif # SHLIB_MAJOR
 
-.include <mkc_imp.platform.sys.mk>
+include mkc_imp.platform.sys.mk
 
 AR         ?=	ar
 ARFLAGS    ?=	rl
@@ -278,16 +292,16 @@ MESSAGE.l ?=	@${_MESSAGE} "LEX: ${.IMPSRC}"
 
 LD.SunOS  ?=	/usr/ccs/bin/ld
 LD.OSF1   ?=	/usr/bin/ld
-LD        ?=	${LD.${TARGET_OPSYS}:Uld}
+LD        ?=	$(or ${LD.${TARGET_OPSYS}},ld)
 LDFLAGS   ?=
 
-.if ${OPSYS} == "Haiku"
+ifeq (${OPSYS},Haiku)
 LN        ?=	ln -s
 LN_S      ?=	ln -s
-.else
+else
 LN        ?=	ln
 LN_S      ?=	${LN} -s
-.endif
+endif
 
 LORDER    ?=	lorder
 
@@ -328,23 +342,24 @@ RM        ?=	rm
 
 TARGETS +=	all install clean cleandir depend test \
 		installdirs uninstall errorcheck filelist obj mkgen
-TARGETS :=	${TARGETS:O:u}
+TARGETS :=	$(sort ${TARGETS})
 
 ALLTARGETS +=	errorcheck all install clean cleandir depend uninstall installdirs \
   mkgen bin_tar bin_targz bin_tarbz2 bin_zip bin_deb
 
 VERBOSE_ECHO ?=	echo
 
-_PN =	${PROJECTNAME} # short synonym
+# short synonym
+_PN =	${PROJECTNAME}
 # Lex
 LPREFIX ?=	yy
-.if ${LPREFIX} != "yy"
+ifneq (${LPREFIX},yy)
 LFLAGS +=	-P${LPREFIX}
-.endif
+endif
 LEXLIB ?=	-ll
 
 # Yacc
-YFLAGS +=	${YPREFIX:D-p${YPREFIX}} ${YHEADER:D-d}
+YFLAGS +=	$(if ${YPREFIX},-p${YPREFIX}) $(if ${YHEADER},-d)
 
 EXPORT_VARNAMES +=	MKC_CACHEDIR TARGETS SHORTPRJNAME
 
@@ -354,13 +369,11 @@ INTERNALLIBS +=	${COMPATLIB}
 STATICLIBS   +=	${INTERNALLIBS}
 
 ###########
-.if exists(${SRCTOP}/Makefile.common)
-.include "${SRCTOP}/Makefile.common"
-.endif
+-include ${SRCTOP}/Makefile.common
 
-.if ${SRCTOP:U} != ${.CURDIR} && exists(${.CURDIR}/../Makefile.inc)
-.include "${.CURDIR}/../Makefile.inc"
-.endif
+ifneq (${SRCTOP},${.CURDIR})
+-include ${.CURDIR}/../Makefile.inc
+endif
 
 ###########
 
@@ -390,48 +403,50 @@ USE_RELRO ?=	no
 USE_FORT  ?=	no
 
 ######
-.if ${MKPIE:U:tl} == "yes"
+ifeq ($(call tolower,${MKPIE}),yes)
 LDFLAGS.prog +=	${LDFLAGS.pie}
 _CFLAGS.pie   +=	${CFLAGS.pie}
 _CXXFLAGS.pie +=	${CXXFLAGS.pie}
-.endif
+endif
 
-.if ${USE_SSP:U:tl} == "yes"
+ifeq ($(call tolower,${USE_SSP}),yes)
 _CFLAGS.ssp   =	${CFLAGS.ssp}
 _CXXFLAGS.ssp =	${CXXFLAGS.ssp}
-.endif
+endif
 
-.if ${USE_RELRO:U:tl} == "yes"
+ifeq ($(call tolower,${USE_RELRO}),yes)
 LDFLAGS.prog +=	${LDFLAGS.relro}
-.endif
+endif
 
-.if ${USE_FORT:U:tl} == "yes"
+ifeq ($(call tolower,${USE_FORT}),yes)
 CPPFLAGS +=	-D_FORTIFY_SOURCE=2
 CFLAGS   +=	-O
-.endif
+endif
 
 SHRTOUT    ?=	no
 
-.if ${SHRTOUT:tl} != "no"
+ifneq ($(call tolower,${SHRTOUT}),no)
 _MESSAGE   ?=	echo
 _MESSAGE_V ?=	:
 _V         ?=	@
-.else
+else
 _MESSAGE   ?=	:
 _MESSAGE_V ?=	echo
 _V         ?=
-.endif
+endif
 
 ###########
 
-.if defined(MKC_REQD) && defined(MKC_VERSION)
+ifdef MKC_REQD
+ifdef MKC_VERSION
 _mkc_version_ok  !=	mkc_check_version ${MKC_REQD} ${MKC_VERSION}
-.if !${_mkc_version_ok}
+ifneq (${_mkc_version_ok},1)
 MKC_ERR_MSG +=	"ERROR: We need mk-configure v.${MKC_REQD} while ${MKC_VERSION} is detected"
 MKCHECKS     =	no
-.endif
-.endif
+endif
+endif
+endif
 
 ###########
 
-.endif # __initialized__
+endif # __initialized__

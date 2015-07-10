@@ -4,4 +4,4 @@ SCRIPTSDIR =	${BUILTINSDIR}
 FILES      =	easy.c
 FILESDIR   =	${SCRIPTSDIR}
 
-.include <mkc.mk>
+include mkc.mk

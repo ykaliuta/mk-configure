@@ -7,35 +7,35 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_MKC_IMP_MAN_MK)
+ifndef _MKC_IMP_MAN_MK
 _MKC_IMP_MAN_MK := 1
 
 MESSAGE.nroff ?=	@${_MESSAGE} "NROFF: ${.TARGET}"
 
-.if ${MKSHARE:tl} == "no"
+ifeq ($(call tolower,${MKSHARE}),no)
 MKCATPAGES =	no
 MKDOC      =	no
 MKINFO     =	no
 MKMAN      =	no
-.endif
+endif
 
-.if ${MKMAN:tl} == "no"
+ifeq ($(call tolower,${MKMAN}),no)
 MKCATPAGES =	no
-.endif
+endif
 
-.if defined(USETBL) && ${USETBL:U:tl} == "no"
-.undef USETBL
-.endif
+ifeq ($(call tolower,${USETBL}),no)
+undefine USETBL
+endif
 
-.if defined(MANZ) && ${MANZ:U:tl} == "no"
-.undef MANZ
-.endif
+ifeq ($(call tolower,${MANZ}),no)
+undefine MANZ
+endif
 
 .PHONY:		catinstall maninstall catpages manpages catlinks \
 		manlinks html installhtml
-.if ${MKMAN:tl} != "no"
+ifneq ($(call tolower,${MKMAN}),no)
 do_install1:	${MANINSTALL}
-.endif
+endif
 
 MANTARGET ?=	cat
 NROFF     ?=	nroff
@@ -48,140 +48,180 @@ TBL       ?=	tbl
 
 .9.cat9 .8.cat8 .7.cat7 .6.cat6 .5.cat5 .4.cat4 .3.cat3 .2.cat2 .1.cat1:
 	${MESSAGE.nroff}
-.if !defined(USETBL)
+ifndef USETBL
 	${_V} ${NROFF} ${NROFF_MAN2CAT} ${.IMPSRC} > ${.TARGET} || \
 	 (${RM} -f ${.TARGET}; false)
-.else
+else
 	${_V} ${TBL} ${.IMPSRC} | ${NROFF} ${NROFF_MAN2CAT} > ${.TARGET} || \
 	 (${RM} -f ${.TARGET}; false)
-.endif
+endif
 
 .9.html9 .8.html8 .7.html7 .6.html6 .5.html5 .4.html4 .3.html3 .2.html2 .1.html1:
-.if !defined(USETBL)
+ifndef USETBL
 	@echo "${GROFF} -Tascii -mdoc2html -P-b -P-u -P-o ${.IMPSRC} > ${.TARGET}"
 	@${GROFF} -Tascii -mdoc2html -P-b -P-u -P-o ${.IMPSRC} > ${.TARGET} || \
 	 (${RM} -f ${.TARGET}; false)
-.else
+else
 	@echo "${TBL} ${.IMPSRC} | ${GROFF} -mdoc2html -P-b -P-u -P-o > ${.TARGET}"
 	@cat ${.IMPSRC} | ${GROFF} -mdoc2html -P-b -P-u -P-o > ${.TARGET} || \
 	 (${RM} -f ${.TARGET}; false)
-.endif
+endif
 
-.if defined(MAN) && !empty(MAN)
+ifneq (${MAN},)
 realdo_all: ${MAN}
 MANPAGES    =	${MAN}
-CATPAGES    =	${MANPAGES:C/(.*).([1-9])/\1.cat\2/}
+CATPAGES    =	$(call sed,s/(.*).([1-9])/\\1.cat\\2/,${MANPAGES})
 CLEANFILES +=	${CATPAGES}
-.NOPATH:	${CATPAGES}
-HTMLPAGES   =	${MANPAGES:C/(.*).([1-9])/\1.html\2/}
-.endif
+#TODO
+#.NOPATH:	${CATPAGES}
+HTMLPAGES   =	$(call sed,s/(.*).([1-9])/\\1.html\\2/,${MANPAGES})
+endif
 
 MINSTALL    =	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
-		    -o ${MANOWN:Q} -g ${MANGRP:Q} -m ${MANMODE}
+		    -o ${MANOWN} -g ${MANGRP} -m ${MANMODE}
 
-.if defined(MANZ)
+ifdef MANZ
 # chown and chmod are done afterward automatically
 MCOMPRESS       =	gzip -cf
 MCOMPRESSSUFFIX =	.gz
-.endif
+endif
 
 catinstall: catlinks
 maninstall: manlinks
 
-__installpage: .USE
-.if defined(MCOMPRESS) && !empty(MCOMPRESS)
+ifneq (${MCOMPRESS},)
+define __installpage
 	@${RM} -f ${.TARGET}
 	${MCOMPRESS} ${.ALLSRC} > ${.TARGET}
-	@chown ${MANOWN:Q}:${MANGRP:Q} ${.TARGET}
+	@chown ${MANOWN}:${MANGRP} ${.TARGET}
 	@chmod ${MANMODE} ${.TARGET}
-.else
+endef
+else
+define __installpage
 	${MINSTALL} ${.ALLSRC} ${.TARGET}
-.endif
+endef
+endif
 
+catpages::
 
 # Rules for cat'ed man page installation
-.if defined(CATPAGES) && !empty(CATPAGES) && ${MKCATPAGES:tl} != "no"
+ifneq (${CATPAGES},)
+ifneq ($(call tolower,${MKCATPAGES}),no)
+
 realdo_all: ${CATPAGES}
 
-.if ${MKINSTALL:tl} == "yes"
-destination_capages = ${CATPAGES:@P@${DESTDIR}${MANDIR}/${P:T:E}${MANSUBDIR}/${P:T:R}.0${MCOMPRESSSUFFIX}@}
+ifeq ($(call tolower,${MKINSTALL}),yes)
+
+define gen_destcapage
+    ${DESTDIR}${MANDIR}/$(suffix ${1})${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX}
+endef
+
+destination_capages = $(foreach P,${FILES},$(call gen_destcapage,${P}))
+
 UNINSTALLFILES  +=	${destination_capages}
-INSTALLDIRS     +=	${destination_capages:H}
-.endif # MKINSTALL
+INSTALLDIRS     +=	$(dir ${destination_capages})
+endif # MKINSTALL
 
 catpages:: ${destination_capages}
 .PRECIOUS: ${destination_capages}
 .PHONY:    ${destination_capages}
 
-.for P in ${CATPAGES:O:u}
-${DESTDIR}${MANDIR}/${P:T:E}${MANSUBDIR}/${P:T:R}.0${MCOMPRESSSUFFIX}: ${P} __installpage
-.endfor
+define __gen_install_rule
+$(call gen_destcapage,${P}): ${P}
+	$(__installpage)
+endef
+$(foreach P,$(sort ${CATPAGES}),$(eval $(value __gen_install_rule)))
 
-.else
-catpages::
-.endif # CATPAGES
+endif
+endif # CATPAGES
 
 # Rules for source page installation
-.if defined(MANPAGES) && !empty(MANPAGES)
+manpages::
 
-.if ${MKINSTALL:tl} == "yes"
-destination_manpages = ${MANPAGES:@P@${DESTDIR}${MANDIR}/man${P:T:E}${MANSUBDIR}/${P}${MCOMPRESSSUFFIX}@}
+ifneq (${MANPAGES},)
+
+ifeq ($(call tolower,${MKINSTALL}),yes)
+
+__gen_dest_file = ${DESTDIR}${MANDIR}/man$(suffix ${1})${MANSUBDIR}/${1}${MCOMPRESSSUFFIX}
+
+destination_manpages := $(foreach I,${MANPAGES},$(call __gen_dest_file,${I}))
 UNINSTALLFILES  +=	${destination_manpages}
-INSTALLDIRS     +=	${destination_manpages:H}
-.endif # MKINSTALL
+INSTALLDIRS     +=	$(dir ${destination_manpages})
+endif # MKINSTALL
 
 manpages:: ${destination_manpages}
 .PRECIOUS: ${destination_manpages}
 .PHONY:    ${destination_manpages}
 
-.for P in ${MANPAGES:O:u}
-${DESTDIR}${MANDIR}/man${P:T:E}${MANSUBDIR}/${P}${MCOMPRESSSUFFIX}: ${P} __installpage
-.endfor
+define __gen_install_rule
+$(call __gen_dest_file,${I}): ${I}
+	${__installpage}
+endef
 
-.else
-manpages::
-.endif # MANPAGES
+$(foreach I,$(sort ${MANPAGES}),$(eval $(value __gen_install_rule)))
 
-.if ${MKCATPAGES:tl} != "no"
-.for s d in ${MLINKS}
-LINKS          +=	${MANDIR}/cat${s:T:E}${MANSUBDIR}/${s:R}.0${MCOMPRESSSUFFIX} \
-			${MANDIR}/cat${d:T:E}${MANSUBDIR}/${d:R}.0${MCOMPRESSSUFFIX}
-UNINSTALLFILES +=	${DESTDIR}${MANDIR}/cat${d:T:E}${MANSUBDIR}/${d:R}.0${MCOMPRESSSUFFIX}
-.endfor
+endif # MANPAGES
+
+ifneq ($(call tolower,${MKCATPAGES}),no)
+
+# ${1} source
+# ${2} destination
+define __process_mlink
+$(eval \
+LINKS += ${MANDIR}/cat$(suffix ${1})${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX} \
+	     ${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
+UNINSTALLFILES += ${DESTDIR}${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
+)
+endef
+
+$(call process_pairs,__process_mlink,${MLINKS})
+
 catlinks: catpages
-.endif
+endif
 catlinks:
 
-.for s d in ${MLINKS}
-LINKS          +=	${MANDIR}/man${s:T:E}${MANSUBDIR}/${s}${MCOMPRESSSUFFIX} \
-			${MANDIR}/man${d:T:E}${MANSUBDIR}/${d}${MCOMPRESSSUFFIX}
-UNINSTALLFILES +=	${DESTDIR}${MANDIR}/man${d:T:E}${MANSUBDIR}/${d}${MCOMPRESSSUFFIX}
-.endfor
+# ${1} source
+# ${2} destination
+define __process_mlink
+$(eval \
+LINKS += ${MANDIR}/cat$(suffix ${1})${MANSUBDIR}/${1}${MCOMPRESSSUFFIX} \
+	   ${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
+UNINSTALLFILES += ${DESTDIR}${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
+)
+endef
+
+$(call process_pairs,__process_mlink,${MLINKS})
+
 manlinks: manpages
 
 # Html rules
 .PHONY: html
 html: ${HTMLPAGES}
 
-.if defined(HTMLPAGES) && !empty(HTMLPAGES)
-.for P in ${HTMLPAGES:O:u} 
-${DESTDIR}${HTMLDIR}/${P:T:E}/${P:T:R}.html: ${P}
-	${MINSTALL} ${.ALLSRC} ${.TARGET}
-.endfor
+ifneq (${HTMLPAGES},)
 
-.if ${MKINSTALL:tl} == "yes"
-destination_htmls = ${HTMLPAGES:@P@${DESTDIR}${HTMLDIR}/${P:T:E}/${P:T:R}.html@}
-.endif
+__gen_dest_file = ${DESTDIR}${HTMLDIR}/$(suffix ${1})/$(basename $(notdir ${1})).html
+
+define __gen_install_rule
+$(call __gen_dest_file,${I}): ${I}
+	${MINSTALL} ${.ALLSRC} ${.TARGET}
+endef
+
+$(foreach I,${HTMLPAGES},$(eval $(value __gen_install_rule)))
+
+ifeq ($(call tolower,${MKINSTALL}),yes)
+destination_htmls = $(foreach I,${HTMLPAGES},$(call __gen_dest_file,${I}))
+endif
 
 installhtml:            ${destination_htmls}
 CLEANFILES +=		${HTMLPAGES}
 
-.if ${MKHTML:tl} == "yes"
+ifeq ($(call tolower,${MKHTML}),yes)
 do_install1: installhtml
 realdo_all: ${HTMLPAGES}
 UNINSTALLFILES +=	${destination_htmls}
-INSTALLDIRS    +=	${destination_htmls:H}
-.endif # MKHTML
-.endif # HTMLPAGES
+INSTALLDIRS    +=	$(dirs ${destination_htmls})
+endif # MKHTML
+endif # HTMLPAGES
 
-.endif # _MKC_IMP_MAN_MK
+endif # _MKC_IMP_MAN_MK

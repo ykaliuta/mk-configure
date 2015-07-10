@@ -3,35 +3,26 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_IMP.PREINIT.MK
+ifndef _MKC_IMP.PREINIT.MK
  _MKC_IMP.PREINIT.MK:=1
 
-####################
-BMAKE_REQD ?=	20110606
+# $(1) dir to check 
+define __check_dir
+$(and $(filter-out undefined,$(origin $(1))),\
+      $(if $(call seq,$(_top_mk),$(patsubst %,mkc.%.mk,$(call tolower,$(1)))),,\
+           $(error $(1) is not allowed for $(_top_mk))))
+endef
 
-.ifdef MAKE_VERSION
-_bmake_ok != test ${MAKE_VERSION} -ge ${BMAKE_REQD} && echo 1 || echo 0
-.else
-_bmake_ok  = 0
-.endif
-
-.if !${_bmake_ok}
-.error "bmake-${BMAKE_REQD} or newer is required"
-.endif
-
-.ifdef _top_mk
-.for i in SUBDIR SUBPRJ PROG LIB
-.if defined(${i}) && ${_top_mk} != "mkc.${i:tl}.mk"
-.error "${i} is not allowed for ${_top_mk}"
-.endif
-.endfor
-.endif
+ifdef _top_mk
+$(foreach dir,SUBDIR SUBPRJ PROG LIB,$(call __check_dir,$(dir)))
+endif
 
 ####################
-.if !make(clean) && !make(cleandir) && !make(distclean) && !make(obj)
+
+ifeq ($(filter ${CLEAN_TARGETS} obj,${MAKECMDGOALS}),)
 MKCHECKS ?=	yes
-.else
+else
 MKCHECKS ?=	no
-.endif # clean/cleandir/distclean
+endif # clean/cleandir/distclean
 
-.endif # _MKC_IMP.PREINIT.MK
+endif # _MKC_IMP.PREINIT.MK

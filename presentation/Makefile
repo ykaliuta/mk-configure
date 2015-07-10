@@ -46,4 +46,4 @@ myprojects.tex : presentation.tex
 		${.ALLSRC} > ${.TARGET}
 myprojects.ps myprojects.pdf myprojects.dvi: my_prjs.eps
 
-.include <mkc.mk>
+include mkc.mk

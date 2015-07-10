@@ -3,7 +3,7 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_IMP_FOREIGN_AUTOTOOLS_MK
+ifndef _MKC_IMP_FOREIGN_AUTOTOOLS_MK
 _MKC_IMP_FOREIGN_AUTOTOOLS_MK := 1
 
 MESSAGE.atconf ?=	@${_MESSAGE} "CONFIGURE:"
@@ -15,55 +15,59 @@ AT_USE_AUTOMAKE ?=	yes
 AT_MAKE         ?=	${MAKE}
 AT_AUTORECONF_ARGS ?=	-is -f
 
-.if empty(FSRCDIR)
+ifeq (${FSRCDIR},)
 MKC_ERR_MSG +=	"FSRCDIR should not be empty"
-.elif empty(FSRCDIR:M/*)
-_FSRCDIR = ${.CURDIR}/${FSRCDIR}
-.else
+else ifeq ($(filter /%,${FSRCDIR}),)
+_FSRCDIR = ${CURDIR}/${FSRCDIR}
+else
 _FSRCDIR = ${FSRCDIR}
-.endif
+endif
 
-.if ${.OBJDIR} == ${.CURDIR}
-.OBJDIR  =	${_FSRCDIR}
-.endif
+ifeq (${.OBJDIR},${CURDIR})
+OBJDIR  =	${_FSRCDIR}
+endif
 _FOBJDIR =	${.OBJDIR}
 
-_CONFIGURE_ARGS = --prefix ${PREFIX:Q} --bindir=${BINDIR:Q} \
-   --sbindir=${SBINDIR:Q} --libexecdir=${LIBEXECDIR} \
-   --sysconfdir=${SYSCONFDIR:Q} --sharedstatedir=${SHAREDSTATEDIR:Q} \
-   --localstatedir=${VARDIR:Q} --libdir=${LIBDIR:Q} \
-   --includedir=${INCSDIR:Q} --datarootdir=${DATADIR:Q} \
-   --infodir=${INFODIR:Q} --localedir=${DATADIR:Q}/locale \
-   --mandir=${MANDIR:Q} --docdir=${DATADIR:Q}/doc/${PROJECTNAME} \
+_CONFIGURE_ARGS = --prefix ${PREFIX} --bindir=${BINDIR} \
+   --sbindir=${SBINDIR} --libexecdir=${LIBEXECDIR} \
+   --sysconfdir=${SYSCONFDIR} --sharedstatedir=${SHAREDSTATEDIR} \
+   --localstatedir=${VARDIR} --libdir=${LIBDIR} \
+   --includedir=${INCSDIR} --datarootdir=${DATADIR} \
+   --infodir=${INFODIR} --localedir=${DATADIR}/locale \
+   --mandir=${MANDIR} --docdir=${DATADIR}/doc/${PROJECTNAME} \
    --srcdir=${_FSRCDIR} ${AT_CONFIGURE_ARGS}
 
-_CONFIGURE_ENV = CC=${CC:Q} CFLAGS=${CFLAGS:Q} \
-   CXX=${CXX:Q} CXXFLAGS=${CXXFLAGS:Q} \
-   CPPFLAGS=${_CPPFLAGS:Q} \
-   LDFLAGS=${LDFLAGS:Q} LIBS=${LDADD:Q} CPP=${CPP:Q} ${AT_CONFIGURE_ENV}
+_CONFIGURE_ENV = CC=${CC} CFLAGS=${CFLAGS} \
+   CXX=${CXX} CXXFLAGS=${CXXFLAGS} \
+   CPPFLAGS=${_CPPFLAGS} \
+   LDFLAGS=${LDFLAGS} LIBS=${LDADD} CPP=${CPP} ${AT_CONFIGURE_ENV}
 
-_AT_MAKE_ENV = ${DESTDIR:DDESTDIR=${DESTDIR:Q}} ${AT_MAKE_ENV}
+_AT_MAKE_ENV = ${DESTDIR:DDESTDIR=${DESTDIR}} ${AT_MAKE_ENV}
 
 realdo_mkgen:
 	${MESSAGE.mkgen}
 	${_V} ${PROG.autoreconf} ${AT_AUTORECONF_ARGS} ${_FSRCDIR}
 
-realdo_errorcheck: check_mkc_err_msg .WAIT at_do_errorcheck
+at_do_errorcheck: check_mkc_err_msg
+realdo_errorcheck: check_mkc_err_msg at_do_errorcheck
 
-at_do_errorcheck: .PHONY
+.PHONY: at_do_errorcheck
+at_do_errorcheck:
 	${MESSAGE.atconf}
 	${_V} cd ${_FOBJDIR}; env ${_CONFIGURE_ENV} ${_FSRCDIR}/configure ${_CONFIGURE_ARGS}
 
-.for i in all clean cleandir install uninstall
-realdo_${i}: at_do_${i}
-at_do_${i}: .PHONY
+_tmp_targets = all clean cleandir install uninstall
+.PHONY: $(addprefix realdo_,${_tmp_targets})
+$(addprefix realdo_,${_tmp_targets}): realdo_%: at_do_%
+.PHONY: $(addprefix at_do_,${_tmp_targets})
+$(addprefix at_do_,${_tmp_targets}): at_do_%:
 	${MESSAGE.autotools}
 	${_V} set -e; \
 	cd ${_FOBJDIR}; \
 	if test -f Makefile; then \
-	    env ${_AT_MAKE_ENV} ${AT_MAKE} ${AT_MAKEFLAGS} ${.TARGET:S/^at_do_//:S/cleandir/distclean/}; \
+	    env ${_AT_MAKE_ENV} ${AT_MAKE} ${AT_MAKEFLAGS} \
+		$(subst cleandir,distclean,$*); \
 	fi
-.endfor
 
 DISTCLEANDIRS  +=	${_FSRCDIR}/autom4te.cache
 DISTCLEANFILES +=	${_FSRCDIR}/aclocal.m4 ${_FOBJDIR}/config.log \
@@ -71,9 +75,9 @@ DISTCLEANFILES +=	${_FSRCDIR}/aclocal.m4 ${_FOBJDIR}/config.log \
    ${_FSRCDIR}/INSTALL ${_FSRCDIR}/install-sh ${_FOBJDIR}/Makefile \
    ${_FSRCDIR}/missing ${_FSRCDIR}/compile ${_FOBJDIR}/stamp-h1
 
-.if ${AT_USE_AUTOMAKE:tl:U} == yes
+ifeq ($(call tolower,${AT_USE_AUTOMAKE}),yes)
 DISTCLEANFILES    +=	${_FSRCDIR}/Makefile.in
 MKC_REQUIRE_PROGS +=	automake
-.endif
+endif
 
-.endif # _MKC_IMP_FOREIGN_AUTOTOOLS_MK
+endif # _MKC_IMP_FOREIGN_AUTOTOOLS_MK

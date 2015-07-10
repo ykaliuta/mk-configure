@@ -3,8 +3,8 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.include <mkc.init.mk>
-.include <mkc_imp.conf.mk>
+include mkc.init.mk
+include mkc_imp.conf.mk
 
 .PHONY: configure
 configure: errorcheck

@@ -2,105 +2,131 @@
 #
 # See LICENSE file in the distribution.
 ############################################################
-.include <mkc_imp.preinit.mk>
 
-.ifdef SUBDIR
+include mkc.gmake.mk
+
+include mkc_imp.preinit.mk
+
+ifdef SUBDIR
 SUBPRJ = ${SUBDIR}
-.endif
+endif
 
-.ifdef SUBPRJS
-SUBPRJ   +=	${SUBPRJS} # for backward compatibility only, use SUBPRJ!
-.endif # defined(SUBPRJS)
+ifdef SUBPRJS
+# for backward compatibility only, use SUBPRJ!
+SUBPRJ   +=	${SUBPRJS}
+endif # defined(SUBPRJS)
 
-.include <mkc_imp.lua.mk>
-.include <mkc_imp.pod.mk>
-.include <mkc.init.mk>
+include mkc_imp.lua.mk
+include mkc_imp.pod.mk
+include mkc.init.mk
 
-.ifdef AXCIENT_LIBDEPS # This feature was proposed by axcient.com developers
-all_deps != mkc_get_deps ${.CURDIR:S,^${SUBPRJSRCTOP}/,,}
-.  for p in ${all_deps}
-_mkfile =	${SUBPRJSRCTOP}/${p}/linkme.mk
-.    if exists(${_mkfile})
-.      include "${_mkfile}"
-.    endif
-DPLDADD   ?=	${p:T:S/^lib//}
-DPLIBDIRS ?=	${OBJDIR_${p:S,/,_,g}}
-DPINCDIRS ?=	${SRCDIR_${p:S,/,_,g}} ${OBJDIR_${p:S,/,_,g}}
-.    include <mkc_imp.dpvars.mk>
-.  endfor
-.endif
+ifdef AXCIENT_LIBDEPS # This feature was proposed by axcient.com developers
+all_deps != mkc_get_deps $(patsubst ${SUBPRJSRCTOP}/%,%,${CURDIR})
+# $(1) -- single dependency
+define dep_loop_body
+-include ${SUBPRJSRCTOP}/$(1)/linkme.mk
+DPLDADD   ?=	$(patsubst lib%,%,$(notdir $(1)))
+DPLIBDIRS ?=	${OBJDIR_$(subst /,_,$(1))}
+DPINCDIRS ?=	${SRCDIR_$(subst /,_,$(1))} ${OBJDIR_$(subst /,_,$(1))}
+include mkc_imp.dpvars.mk
+endef
+$(foreach p,${all_deps},$(eval $(call dep_loop_body,${p})))
+endif
 
-.ifdef DPLIBDIRS
-.warning "This way of using DPLIBDIRS is deprecated since 2014-08-21"
+ifdef DPLIBDIRS
+$(warning This way of using DPLIBDIRS is deprecated since 2014-08-21)
+
+# $(1) one directory
+define dir_loop_body
+DPLIBDIRS = $(patsubst ${SUBPRJSRCTOP}/%,%,$(subst /,_,$(1)))
+include mkc_imp.dpvars.mk
+endef
+
 _DPLIBDIRS := ${DPLIBDIRS}
-.  for _dir in ${_DPLIBDIRS}
-DPLIBDIRS =	${OBJDIR_${_dir:S,^${SUBPRJSRCTOP}/,,:S,/,_,g}}
-.    include <mkc_imp.dpvars.mk>
-.  endfor
-.  undef _DPLIBDIRS
-.  undef DPLIBDIRS
-.endif
+$(foreach _dir,${_DPLIBDIRS},$(eval $(call dir_loop_body,$(_dir))))
 
-.if defined(LIBDEPS)
-SUBPRJ          +=	${LIBDEPS} # library dependencies
+undefine _DPLIBDIRS
+undefine DPLIBDIRS
+endif
+
+ifdef LIBDEPS
+# library dependencies
+SUBPRJ          +=	${LIBDEPS}
 AXCIENT_LIBDEPS :=	${LIBDEPS}
 EXPORT_VARNAMES +=	AXCIENT_LIBDEPS
-.endif # defined(LIBDEPS)
+endif # defined(LIBDEPS)
 
-.if !defined(LIB) && !defined(SUBPRJ)
+ifndef LIB
+ifndef SUBPRJ
 _use_prog :=	1
-.endif
+endif
+endif
 
-.ifdef FOREIGN
-.include <mkc_imp.foreign_${FOREIGN}.mk>
-.endif
-.include <mkc_imp.rules.mk>
-.include <mkc_imp.obj.mk>
+ifdef FOREIGN
+include mkc_imp.foreign_${FOREIGN}.mk
+endif
+include mkc_imp.rules.mk
+include mkc_imp.obj.mk
 
 # Make sure all of the standard targets are defined, even if they do nothing.
-do_install1 do_install2: .PHONY
+.PHONY: do_install1 do_install2
+do_install1 do_install2:
 
-distclean:	.PHONY cleandir
+.PHONY: cleandir
+distclean: cleandir
+cleandir:
 
-.if ${MKINSTALLDIRS:tl} == "yes"
-install: pre_installdirs .WAIT do_installdirs .WAIT post_installdirs .WAIT \
-         pre_install .WAIT do_install .WAIT post_install
-.endif
+ifeq ($(call tolower,${MKINSTALLDIRS}),yes)
+install: post_install
+post_install: do_install
+do_install: pre_install
+pre_install: post_installdirs
+post_installdirs: do_installdirs
+do_installdirs: pre_installdirs
+endif
 
-realdo_install: do_install1 .WAIT do_install2
+realdo_install: do_install2
+do_install2: do_install1
 
 # skip uninstalling files and creating destination dirs for mkc.subprj.mk
-.if !defined(SUBPRJ)
+ifndef SUBPRJ
 
 realdo_uninstall:
 	-${UNINSTALL} ${UNINSTALLFILES}
 
 realdo_installdirs:
-	for d in _ ${INSTALLDIRS:O:u:S|/.$||}; do \
+	for d in _ $(sort $(patsubst %/.,%,${INSTALLDIRS})); do \
 		test "$$d" = _ || ${INSTALL} -d -m ${DIRMODE} "$$d"; \
 	done
 
 filelist:
-	@for d in ${UNINSTALLFILES:O:u}; do \
+	@for d in $(sort ${UNINSTALLFILES}); do \
 		echo $$d; \
 	done
 
 test:
 
-.endif # SUBPRJ
+endif # SUBPRJ
 
 ###########
+# TODO: quote for shell
+define print_cmd
+printf "%s=%s\n" $(1) ${$(1)}
+
+endef
+
 .PHONY : print_values
 print_values :
-.for v in ${VARS}
-	@printf "%s=%s\n" ${v} ${${v}:Q}
-.endfor
+	@$(foreach v,${VARS},$(call print_cmd,${v}))
 
+# TODO: quote for shell
+define print2_cmd
+printf "%s\n" ${$(1)}
+
+endef
 .PHONY : print_values2
 print_values2 :
-.for v in ${VARS}
-	@printf "%s\n" ${${v}:Q}
-.endfor
+	@$(foreach v,${VARS},$(call print2_cmd,${v}))
 
 ###########
 check_mkc_err_msg:
@@ -115,47 +141,66 @@ check_mkc_err_msg:
 	    exit $$ex; \
 	fi
 
-all: pre_errorcheck .WAIT do_errorcheck .WAIT post_errorcheck .WAIT pre_all .WAIT do_all .WAIT post_all
+all: post_all
+post_all: do_all
+do_all: pre_all
+pre_all: post_errorcheck
+post_errorcheck: do_errorcheck
+do_errorcheck: pre_errorcheck
+
 realdo_errorcheck: check_mkc_err_msg
 
-.include <mkc_imp.checkprogs.mk>
-.include <mkc_imp.conf-cleanup.mk>
+include mkc_imp.checkprogs.mk
+include mkc_imp.conf-cleanup.mk
 
 # features
-.for f in ${MKC_FEATURES}
-.include <mkc_imp.f_${f}.mk>
-.endfor
-.include <mkc_imp.conf-cleanup.mk>
-CFLAGS +=	${MKC_FEATURES:D-I${FEATURESDIR}}
+ifdef MKC_FEATURES
+include $(patsubst %,mkc_imp.f_%.mk,${MKC_FEATURES})
+endif
 
-.if !defined(MKC_ERR_MSG) || make(clean) || make(cleandir) || make(distclean)
+include mkc_imp.conf-cleanup.mk
 
-.if defined(LIB)
-.include <mkc_imp.lib.mk>
-.elif defined(_use_prog)
-.include <mkc_imp.prog.mk>
-.endif
+ifdef MKC_FEATURES
+CFLAGS +=	-I${FEATURESDIR}
+endif
 
-.if defined(_use_prog) || defined(LIB)
-.include <mkc_imp.man.mk>
-.include <mkc_imp.info.mk>
-.include <mkc_imp.inc.mk>
-.include <mkc_imp.intexts.mk>
-.include <mkc_imp.pkg-config.mk>
-.include <mkc_imp.dep.mk>
-.include <mkc_imp.files.mk>
-.include <mkc_imp.scripts.mk>
-.include <mkc_imp.links.mk>
-.endif # _use_prog || LIB
+ifneq ($(or $(call not,${MKC_ERR_MSG}),\
+	$(filter ${CLEAN_TARGETS},${MAKECMDGOALS})),)
+
+ifdef LIB
+include mkc_imp.lib.mk
+else ifdef _use_prog
+include mkc_imp.prog.mk
+endif
+
+_do_include :=
+ifdef _use_prog
+_do_include := T
+endif
+ifdef LIB
+_do_include := T
+endif
+
+ifneq ($(_do_include),)
+include mkc_imp.man.mk
+include mkc_imp.info.mk
+include mkc_imp.inc.mk
+include mkc_imp.intexts.mk
+include mkc_imp.pkg-config.mk
+include mkc_imp.dep.mk
+include mkc_imp.files.mk
+include mkc_imp.scripts.mk
+include mkc_imp.links.mk
+endif # _use_prog || LIB
 
 ########################################
-.if defined(SUBPRJ)
-.include <mkc_imp.subprj.mk>
-.endif # SUBPRJ
+ifdef SUBPRJ
+include mkc_imp.subprj.mk
+endif # SUBPRJ
 ########################################
 
-.include <mkc_imp.arch.mk>
+include mkc_imp.arch.mk
 
-.endif # MKC_ERR_MSG
+endif # MKC_ERR_MSG
 
-.include <mkc_imp.final.mk>
+include mkc_imp.final.mk

@@ -1,29 +1,45 @@
-.if !empty(_srcsall:U:M*.y) && !empty(YACC)
-MKC_REQUIRE_PROGS  +=			${YACC:[1]}
-MKC_PROG.id.${YACC:[1]:S/+/x/g}  =	yacc
-.endif
+define prog_id_var
+MKC_PROG.id.$(subst +,x,$(firstword ${1}))
+endef
 
-.if !empty(_srcsall:U:M*.l) && !empty(LEX)
-MKC_REQUIRE_PROGS  +=			${LEX:[1]}
-MKC_PROG.id.${LEX:[1]:S/+/x/g}   =	lex
-.endif
+ifneq (${YACC},)
+ifneq ($(call filter-glob,*.y,${_srcsall}),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${YACC})
+$(call prog_id_var ${YACC}) = 	yacc
+endif
+endif
 
-.if !empty(_srcsall:U:M*.c) || !empty(_srcsall:U:M*.l) || !empty(_srcsall:U:M*.y) && !empty(CC)
-MKC_REQUIRE_PROGS  +=			${CC:[1]}
-MKC_PROG.id.${CC:[1]:S|+|x|g}    =	cc
-.endif
+ifneq (${LEX},)
+ifneq ($(call filter-glob,*.l,${_srcsall}),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${LEX})
+$(call prog_id_var,${LEX}) = 	lex
+endif
+endif
 
-.if !empty(_srcsall:U:M*.cc) || !empty(_srcsall:U:M*.C) || !empty(_srcsall:U:M*.cxx) || !empty(_srcsall:U:M*.cpp) && !empty(CXX)
-MKC_REQUIRE_PROGS  +=			${CXX:[1]}
-MKC_PROG.id.${CXX:[1]:S/+/x/g}   =	cxx
-.endif
+ifneq (${CC},)
+ifneq ($(or $(call filter-glob,*.c,${_srcsall})$(call filter-glob,*.l,${_srcsall})$(call filter-glob,*.y,${_srcsall})),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${CC})
+$(call prog_id_var,${CC}) =	cc
+endif
+endif
 
-.if !empty(_srcsall:U:M*.f) && !empty(FC)
-MKC_REQUIRE_PROGS  +=			${FC:[1]}
-MKC_PROG.id.${FC:[1]:S/+/x/g}    =	fc
-.endif
+ifneq (${CXX},)
+ifneq ($(or $(call filter-glob,*.cc,${_srcsall})$(call filter-glob,*.C,${_srcsall})$(call filter-glob,*.cxx,${_srcsall})),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${CXX})
+$(call prog_id_var,${CXX}) = 	cxx
+endif
+endif
 
-.if !empty(_srcsall:U:M*.p) && !empty(PC)
-MKC_REQUIRE_PROGS  +=			${PC:[1]}
-MKC_PROG.id.${PC:[1]:S/+/x/g}    =	pc
-.endif
+ifneq (${FC},)
+ifneq ($(call filter-glob,*.f,${_srcsall}),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${FC})
+$(call prog_id_var,${FC}) = 	fc
+endif
+endif
+
+ifneq (${PC},)
+ifneq ($(call filter-glob,*.p,${_srcsall}),)
+MKC_REQUIRE_PROGS  +=		$(firstword ${PC})
+$(call prog_id_var,${PC}) = 	pc
+endif
+endif

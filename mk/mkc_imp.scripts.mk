@@ -7,36 +7,48 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_MKC_IMP_SCRIPTS_MK)
+ifndef _MKC_IMP_SCRIPTS_MK
 _MKC_IMP_SCRIPTS_MK := 1
 
-scriptsinstall:	.PHONY # ensure existence
+scriptsinstall:	# ensure existence
+.PHONY: scriptsinstall
 do_install1:	scriptsinstall
 
 realdo_all: ${SCRIPTS}
 
-.if defined(SCRIPTS)
-.if ${MKINSTALL:tl} == "yes"
-destination_scripts = ${SCRIPTS:@S@${DESTDIR}${SCRIPTSDIR_${S:S|/|_|g}:U${SCRIPTSDIR}}/${SCRIPTSNAME_${S:S|/|_|g}:U${SCRIPTSNAME:U${S:T}}}@}
+ifdef SCRIPTS
+ifeq ($(call tolower,${MKINSTALL}),yes)
+
+define __gen_dest_script
+	${DESTDIR}$(or ${SCRIPTSDIR_$(subst /,_,${1})},\
+			${SCRIPTSDIR})/$(or ${SCRIPTSNAME_$(subst /,_,${1})},\
+					${SCRIPTSNAME}, \
+					$(notdir ${1}))
+endef
+
+destination_scripts = $(foreach I,${SCRIPTS},$(call __gen_dest_script,${I}))
 UNINSTALLFILES +=	${destination_scripts}
-INSTALLDIRS    +=	${destination_scripts:H}
-.endif # MKINSTALL
+INSTALLDIRS    +=	$(filter-out ./,$(dir ${destination_scripts}))
+endif # MKINSTALL
 
 scriptsinstall:  ${destination_scripts}
 .PRECIOUS:       ${destination_scripts}
 .PHONY:          ${destination_scripts}
 
-__scriptinstall: .USE
+__scriptinstall = \
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
-	    -o ${SCRIPTSOWN_${.ALLSRC:T}:U${SCRIPTSOWN}:Q} \
-	    -g ${SCRIPTSGRP_${.ALLSRC:T}:U${SCRIPTSGRP}:Q} \
-	    -m ${SCRIPTSMODE_${.ALLSRC:T}:U${SCRIPTSMODE}} \
+	    -o $(call gen_install_switch,SCRIPTSOWN) \
+	    -g $(call gen_install_switch,SCRIPTSGRP) \
+	    -m $(call gen_install_switch,SCRIPTSMODE) \
 	    ${.ALLSRC} ${.TARGET}
 
-.for S in ${SCRIPTS:O:u}
-${DESTDIR}${SCRIPTSDIR_${S:S|/|_|g}:U${SCRIPTSDIR}}/${SCRIPTSNAME_${S:S|/|_|g}:U${SCRIPTSNAME:U${S:T}}}: ${S} __scriptinstall
-.endfor
+define __gen_install_rule
+$(call __gen_install_script,${F}): ${F}
+	$(__scriptinstall)
+endef
 
-.endif # defined(SCRIPTS)
+$(foreach F,$(sort ${SCRIPTS}),$(eval $(value __gen_install_rule)))
 
-.endif # _MKC_IMP_SCRIPTS_MK
+endif # defined(SCRIPTS)
+
+endif # _MKC_IMP_SCRIPTS_MK

@@ -2,41 +2,48 @@
 #
 # See LICENSE file in the distribution.
 
-.if !defined(_MKC_IMP_OBJDIR_MK)
+ifndef _MKC_IMP_OBJDIR_MK
 _MKC_IMP_OBJDIR_MK := 1
 
-.if ${:!if test -d ${.CURDIR}/obj.${MACHINE}; then echo 1; else echo 0; fi!}
-  _OBJ_MACHINE_DIR := 1
-.elif ${:!if test -d ${.CURDIR}/obj; then echo 1; else echo 0; fi!}
-  _OBJ_DIR := 1
-.endif
+ifneq ($(call check_dir,${.CURDIR}/obj.${MACHINE}),)
+_OBJ_MACHINE_DIR := ${.CURDIR}/obj.${MACHINE}
+else ifneq ($(call check_dir,${.CURDIR}/obj),)
+_OBJ_DIR := ${.CURDIR}/obj
+endif
 
-.for i in ${__REALSUBPRJ}
-j:=${i:S,/,_,g}
-.if empty(j:U:M*[.]*)
-EXPORT_VARNAMES += OBJDIR_${i:S,/,_,g}
-.  if ${MKRELOBJDIR:tl} == "yes"
+# ${i} is subproject name
+define __set_subprj_objdir
+j := $(subst /,_,${i})
+
+# skip names with ., like ../sub/project
+ifeq ($(subst .,,${j}),${j})
+$(eval EXPORT_VARNAMES += OBJDIR_${j})
+ifeq ($(call tolower,${MKRELOBJDIR}),yes)
 OBJDIR_${j} := ${.OBJDIR}/${i}
-.  elif defined(MAKEOBJDIRPREFIX)
+else ifdef MAKEOBJDIRPREFIX
 OBJDIR_${j} := ${MAKEOBJDIRPREFIX}${.CURDIR}
-.  elif defined(MAKEOBJDIR)
+else ifdef MAKEOBJDIR
 OBJDIR_${j} := ${MAKEOBJDIR}
-.  elif defined(_OBJ_MACHINE_DIR)
-OBJDIR_${j} := ${.CURDIR}/obj.${MACHINE}
-.  elif defined(_OBJ_DIR)
-OBJDIR_${j} := ${.CURDIR}/obj
-.  else
+else ifdef _OBJ_MACHINE_DIR
+OBJDIR_${j} := ${_OBJ_MACHINE_DIR}
+else ifdef _OBJ_DIR
+OBJDIR_${j} := ${_OBJ_DIR}
+else
 OBJDIR_${j} := ${.CURDIR}/${i}
-.  endif # MAKEOBJDIRPREFIX...
-.  if ${SHORTPRJNAME:tl} == "yes" && ${i} != ${j}
-OBJDIR_${i:T} := ${OBJDIR_${j}}
-EXPORT_VARNAMES += OBJDIR_${i:T}
-.  endif
-.endif
+endif # MAKEOBJDIRPREFIX...
 
-.endfor # i
+ifeq  ($(call tolower,${SHORTPRJNAME}),yes)
+ifneq (${i},${j})
+$(eval OBJDIR_$(notdir ${i}) := ${OBJDIR_${j}})
+$(eval EXPORT_VARNAMES += OBJDIR_$(notdir ${i}))
+endif
+endif
+endif # . check
+endef
 
-.undef _OBJ_MACHINE_DIR
-.undef _OBJ_DIR
+$(foreach i,${__REALSUBPRJ},$(eval $(value __set_subprj_objdir)))
 
-.endif # _MKC_IMP_OBJDIR_MK
+undefine _OBJ_MACHINE_DIR
+undefine _OBJ_DIR
+
+endif # _MKC_IMP_OBJDIR_MK

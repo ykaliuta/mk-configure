@@ -3,6 +3,6 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.include <mkc_imp.conf.mk>
+include mkc_imp.conf.mk
 
-.undef MKC_NOAUTO
+undefine MKC_NOAUTO

@@ -3,16 +3,17 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_IMP_ARCH_MK
+ifndef _MKC_IMP_ARCH_MK
 _MKC_IMP_ARCH_MK   :=   1
 
 rnd      !=	echo $$$$
 destdir   =	${TMPDIR:U/tmp}/mkc.${rnd}
-basefile  =	${.CURDIR}/${PROJECTNAME}
+basefile  =	${CURDIR}/${PROJECTNAME}
 
-bin_cleanup: .PHONY
+.PHONY: bin_cleanup
+bin_cleanup:
 	set -e; ${RM} -rf ${destdir}; ${MKDIR} -m 0700 ${destdir}; \
-	${MAKE} ${MAKEFLAGS} all install DESTDIR=${destdir}
+	${MAKE} all install DESTDIR=${destdir}
 
 realdo_bin_tar: bin_cleanup
 	set -e; ${RM} -f ${basefile}.tar; cd ${destdir}; \
@@ -30,7 +31,7 @@ realdo_bin_zip: bin_cleanup
 
 realdo_bin_deb: DEBIAN/control bin_cleanup
 	set -e; cp -rp DEBIAN ${destdir}; ${RM} -rf ${destdir}/DEBIAN/CVS; \
-	dpkg-deb -b ${destdir} ${.CURDIR:T:S/_/-/g}.deb; \
+	dpkg-deb -b ${destdir} ${CURDIR:T:S/_/-/g}.deb; \
 	${RM} -rf ${destdir}
 
-.endif # _MKC_IMP_ARCH_MK
+endif # _MKC_IMP_ARCH_MK

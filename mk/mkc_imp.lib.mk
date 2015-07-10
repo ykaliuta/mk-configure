@@ -7,15 +7,15 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_MKC_IMP_LIB_MK)
+ifndef _MKC_IMP_LIB_MK
 _MKC_IMP_LIB_MK := 1
 
 .PHONY:		libinstall
-.if ${MKINSTALL:tl} == "yes"
+ifeq ($(call tolower,${MKINSTALL}),yes)
 do_install1:	libinstall
 INSTALLDIRS    +=	${DESTDIR}${LIBDIR}
 UNINSTALLFILES +=	${UNINSTALLFILES.lib}
-.endif # MKINSTALL
+endif # MKINSTALL
 
 # Set PICFLAGS to cc flags for producing position-independent code,
 # if not already set.  Includes -DPIC, if required.
@@ -36,147 +36,171 @@ UNINSTALLFILES +=	${UNINSTALLFILES.lib}
 CFLAGS  +=	${COPTS}
 FFLAGS  +=	${FOPTS}
 
-OBJS  +=	${SRCS:N*.h:N*.sh:T:R:S/$/.o/g}
+
+OBJS  +=	$(addsuffix .o,\
+			$(basename $(notdir $(filter-out %.h %.sh,${SRCS}))))
 SOBJS  =	${OBJS:.o=.os}
 POBJS  =	${OBJS:.o=.op}
 
-.if !empty(SRCS:N*.h:N*.sh:M*/*:H)
-SRC_PATHADD +=	${SRCS:N*.h:N*.sh:M*/*:H}
-.endif
+SRC_PATHADD +=	$(filter-out ./,$(dir $(filter-out %.h %.sh,${SRCS})))
 
-.if ${MKSTATICLIB:tl} != "no"
+ifneq ($(call tolower,${MKSTATICLIB},no))
 _LIBS +=	lib${LIB}.a
-.endif
+endif
 
-.if ${MKPROFILELIB:tl} != "no"
+ifneq ($(call tolower,${MKPROFILELIB},no))
 _LIBS +=	lib${LIB}_p.a
-.endif
+endif
 
-.if ${MKPICLIB:tl} != "no"
+ifneq ($(call tolower,${MKPICLIB},no))
 _LIBS +=	lib${LIB}_pic.a
-.endif # MKPICLIB
+endif # MKPICLIB
 
-.if ${MKSHLIB:tl} != "no"
-.if ${MKDLL:tl} == "no"
+ifneq ($(call tolower,${MKSHLIB}),no)
+ifeq ($(call tolower,${MKDLL}),no)
 SHLIBFN  =	lib${LIB}${SHLIB_EXTFULL}
-.else
+else
 SHLIBFN  =	${LIB}${DLL_EXT}
-.endif
+endif
 _LIBS   +=	${SHLIBFN}
-.endif
+endif
 
-.NOPATH: ${_LIBS}
+#TODO
+#.NOPATH: ${_LIBS}
 
 realdo_all: ${SRCS} ${_LIBS}
 
 _SRCS_ALL = ${SRCS}
 
-__archivebuild: .USE
+define __archivebuild
 	@${RM} -f ${.TARGET}
 	${MESSAGE.ar}
 	${_V} ${AR} cq ${.TARGET} ${.ALLSRC}; \
 	${RANLIB} ${.TARGET}
+endef
 
-__archiveinstall: .USE
+define __archiveinstall
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} -o ${LIBOWN:Q} \
 	    -g ${LIBGRP:Q} -m ${LIBMODE} ${.ALLSRC} ${.TARGET}
+endef
 
-DPSRCS     +=	${SRCS:M*.l:.l=.c} ${SRCS:M*.y:.y=.c}
+DPSRCS     += $(patsubst %.l,%.c,$(filter %.l,${SRCS}))
+DPSRCS     += $(patsubst %.y,%.c,$(filter %.y,${SRCS}))
 CLEANFILES +=	${DPSRCS}
-.if defined(YHEADER)
-CLEANFILES +=	${SRCS:M*.y:.y=.h}
-.endif
+ifdef YHEADER
+CLEANFILES +=	$(patsubst %.y,%.h,$(filter %.y,${SRCS}))
+endif
 
-lib${LIB}.a:: ${OBJS} __archivebuild
+lib${LIB}.a:: ${OBJS}
+	${__archivebuild}
 	@${_MESSAGE_V} "building standard ${LIB} library"
 
-lib${LIB}_p.a:: ${POBJS} __archivebuild
+lib${LIB}_p.a:: ${POBJS}
+	${__archivebuild}
 	@${_MESSAGE_V} "building profiled ${LIB} library"
 
-lib${LIB}_pic.a:: ${SOBJS} __archivebuild
+lib${LIB}_pic.a:: ${SOBJS}
+	${__archivebuild}
 	@${_MESSAGE_V} "building shared object ${LIB} library"
 
 ${SHLIBFN}: ${SOBJS} ${DPADD}
-.if !commands(${SHLIBFN})
+#TODO
+#.if !commands(${SHLIBFN})
 	@${_MESSAGE_V} building shared ${LIB} library \(version ${SHLIB_FULLVERSION}\)
 	@${RM} -f ${.TARGET}
 	@${_MESSAGE} "LD: ${.TARGET}"
 	${_V} $(LDREAL) ${LDFLAGS.shlib} -o ${.TARGET} \
 	    ${SOBJS} ${LDFLAGS0} ${LDADD0} ${LDFLAGS} ${LDADD}
-.if ${OBJECT_FMT} == "ELF" && ${MKDLL:tl} == "no"
+ifeq (${OBJECT_FMT},ELF)
+ifeq ($(call tolower,${MKDLL}),no)
 	@${LN_S} -f ${SHLIBFN} lib${LIB}${SHLIB_EXT}
 	@${LN_S} -f ${SHLIBFN} lib${LIB}${SHLIB_EXT1}
-.endif # ELF
-.endif # !commands(...)
+endif
+endif # ELF
+#.endif # !commands(...)
 
 CLEANFILES += \
 	${OBJS} ${POBJS} ${SOBJS}
 
-.if !target(libinstall)
+ifeq ($(filter libinstall,${MAKECMDGOALS}),)
 # Make sure it gets defined
 libinstall::
 
 CLEANFILES   +=	lib${LIB}.a lib${LIB}_pic.a lib${LIB}_p.a
 
    # MKSTATICLIB
-.if ${MKSTATICLIB:tl} != "no"
+ifneq ($(call tolower,${MKSTATICLIB}),no)
 libinstall:: ${DESTDIR}${LIBDIR}/lib${LIB}.a
 .PRECIOUS: ${DESTDIR}${LIBDIR}/lib${LIB}.a
 .PHONY: ${DESTDIR}${LIBDIR}/lib${LIB}.a
 UNINSTALLFILES.lib +=	${DESTDIR}${LIBDIR}/lib${LIB}.a
 
-${DESTDIR}${LIBDIR}/lib${LIB}.a: lib${LIB}.a __archiveinstall
-.endif
+${DESTDIR}${LIBDIR}/lib${LIB}.a: lib${LIB}.a
+	$(__archiveinstall)
+endif
 
    # MKPROFILELIB
-.if ${MKPROFILELIB:tl} != "no"
+ifneq ($(call tolower,${MKPROFILELIB},no)
 libinstall:: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 .PRECIOUS: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 .PHONY: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 UNINSTALLFILES.lib +=	${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 
-${DESTDIR}${LIBDIR}/lib${LIB}_p.a: lib${LIB}_p.a __archiveinstall
-.endif
+${DESTDIR}${LIBDIR}/lib${LIB}_p.a: lib${LIB}_p.a
+	${__archiveinstall}
+endif
 
    # MKPICLIB
-.if ${MKPICLIB:tl} != "no"
+ifneq ($(call tolower,${MKPICLIB}),no)
 libinstall:: ${DESTDIR}${LIBDIR}/lib${LIB}_pic.a
 .PRECIOUS: ${DESTDIR}${LIBDIR}/lib${LIB}_pic.a
 .PHONY: ${DESTDIR}${LIBDIR}/lib${LIB}_pic.a
 UNINSTALLFILES.lib +=	${DESTDIR}${LIBDIR}/lib${LIB}_pic.a
 
-${DESTDIR}${LIBDIR}/lib${LIB}_pic.a: lib${LIB}_pic.a __archiveinstall
-.endif
+${DESTDIR}${LIBDIR}/lib${LIB}_pic.a: lib${LIB}_pic.a
+	${__archiveinstall}
+endif
 
    # MKSHLIB
-.if ${MKSHLIB:tl} != "no"
+ifneq ($(call tolower,${MKSHLIB}),no)
 libinstall:: ${DESTDIR}${LIBDIR}/${SHLIBFN}
 .PRECIOUS: ${DESTDIR}${LIBDIR}/${SHLIBFN}
 .PHONY: ${DESTDIR}${LIBDIR}/${SHLIBFN}
 UNINSTALLFILES.lib += ${DESTDIR}${LIBDIR}/${SHLIBFN}
-.if ${MKDLL:tl} == "no"
+
+ifeq ($(call tolower,${MKDLL}),no)
 UNINSTALLFILES.lib +=	${DESTDIR}${LIBDIR}/lib${LIB}${SHLIB_EXT} \
 			${DESTDIR}${LIBDIR}/lib${LIB}${SHLIB_EXT1}
 CLEANFILES += \
 	lib${LIB}${SHLIB_EXT} lib${LIB}${SHLIB_EXT1} \
-	lib${LIB}${SHLIB_EXT2} ${SHLIB_EXT3:Dlib${LIB}${SHLIB_EXT3}}
-.else
+	lib${LIB}${SHLIB_EXT2} \
+	${$(if $(call is_defined,SHLIB_EXT3),${SHLIB_EXT3},lib)${LIB}${SHLIB_EXT3}}
+else
 CLEANFILES += ${SHLIBFN}
-.endif
+endif
 
 ${DESTDIR}${LIBDIR}/${SHLIBFN}: ${SHLIBFN}
-	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} -o ${LIBOWN:Q} \
-	    -g ${LIBGRP:Q} -m ${SHLIBMODE} ${.ALLSRC} ${.TARGET}
-.if ${OBJECT_FMT} == "a.out" && !defined(DESTDIR) && ${MKDLL:tl} == "no"
+	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} -o ${LIBOWN} \
+	    -g ${LIBGRP} -m ${SHLIBMODE} ${.ALLSRC} ${.TARGET}
+
+ifeq (${OBJECT_FMT},a.out)
+ifndef DESTDIR
+ifeq ($(call tolower,${MKDLL}),no)
 	/sbin/ldconfig -m ${LIBDIR}
-.endif
-.if ${OBJECT_FMT} == "ELF" && ${MKDLL:tl} == "no"
+endif
+endif
+endif
+
+ifeq (${OBJECT_FMT},ELF)
+ifeq ($(call tolower,${MKDLL}),no)
 	${LN_S} -f ${SHLIBFN} \
 	    ${DESTDIR}${LIBDIR}/lib${LIB}${SHLIB_EXT1}
 	${LN_S} -f ${SHLIBFN} \
 	    ${DESTDIR}${LIBDIR}/lib${LIB}${SHLIB_EXT}
-.endif
-.endif
-.endif
+endif
+endif #ELF
 
-.endif #_MKC_IMP_LIB_MK
+endif #MKSHLIB
+endif # goal libinstall
+
+endif #_MKC_IMP_LIB_MK

@@ -27,34 +27,39 @@
 #
 
 # user defined variables
-MKC_SHOW_CACHED     ?= 0          # set it to `1' to show "...(cached)..." lines
-MKC_DELETE_TMPFILES ?= 0          # set it to `1' to delete temporary files
-MKC_CACHEDIR        ?= ${.OBJDIR} # directory for cache and intermediate files
-MKC_COMMON_HEADERS  ?=            # list of headers always #included
-MKC_NOCACHE         ?=            # 1 or yes for disabling cache
-MKC_CUSTOM_DIR      ?=${.CURDIR}  # directory with custom tests.c
-MKC_SOURCE_DIR      ?=${.CURDIR}  # directory with missing strlcat.c etc.
-.if !empty(COMPATLIB) && ${COMPATLIB:U} != ${.CURDIR:T}
+# set it to `1' to show "...(cached)..." lines
+MKC_SHOW_CACHED     ?= 0
+# set it to `1' to delete temporary files
+MKC_DELETE_TMPFILES ?= 0
+# directory for cache and intermediate files
+MKC_CACHEDIR        ?= ${.OBJDIR}
+# list of headers always #included
+MKC_COMMON_HEADERS  ?=
+# 1 or yes for disabling cache
+MKC_NOCACHE         ?=
+# directory with custom tests.c
+MKC_CUSTOM_DIR      ?=${CURDIR}
+# directory with missing strlcat.c etc.
+MKC_SOURCE_DIR      ?=${CURDIR}
+#.if !empty(COMPATLIB) && ${COMPATLIB:U} != ${.CURDIR:T}
+ifdef COMPATLIB
+ifneq (${COMPATLIB},$(notdir ${CURDIR}))
 MKC_NOSRCSAUTO      ?=	1
-.else
+endif
+endif
 MKC_NOSRCSAUTO      ?=	0
-.endif
 
 #
 MKC_SOURCE_FUNCLIBS   ?=
-_MKC_SOURCE_FUNCS      =	${MKC_SOURCE_FUNCLIBS:C/:.*//}
+_MKC_SOURCE_FUNCS      =	$(call sed,s/:.*//,${MKC_SOURCE_FUNCLIBS})
 
 # .endif for the next .if is in the end of file
-.if ${MKCHECKS:Uno:tl} == "yes"
+ifeq ($(call tolower,${MKCHECKS}),yes)
 
 HAVE_FUNCLIB.main ?=	1
 
-.if defined(MKC_COMMON_DEFINES.${TARGET_OPSYS})
 CPPFLAGS +=		${MKC_COMMON_DEFINES.${TARGET_OPSYS}}
-.endif
-.if defined(MKC_COMMON_DEFINES)
 CPPFLAGS +=		${MKC_COMMON_DEFINES}
-.endif
 
 #
 _MKC_CPPFLAGS :=	${CPPFLAGS}
@@ -64,313 +69,329 @@ _MKC_FFLAGS   :=	${FFLAGS}
 _MKC_LDFLAGS  :=	${LDFLAGS}
 _MKC_LDADD    :=	${LDADD}
 
-mkc.environ=CC='${CC}' CXX='${CXX}' FC='${FC}' CPPFLAGS='${_MKC_CPPFLAGS}' CFLAGS='${_MKC_CFLAGS}' CXXFLAGS='${_MKC_CXXFLAGS}' FFLAGS='${_MKC_FFLAGS}' LDFLAGS='${_MKC_LDFLAGS}' LDADD='${_MKC_LDADD}' LEX='${LEX}' YACC='${YACC}' MKC_CACHEDIR='${MKC_CACHEDIR}' MKC_COMMON_HEADERS='${MKC_COMMON_HEADERS}' MKC_DELETE_TMPFILES='${MKC_DELETE_TMPFILES}' MKC_SHOW_CACHED='${MKC_SHOW_CACHED}' MKC_NOCACHE='${MKC_NOCACHE}' MKC_VERBOSE=1
+mkc.environ=PATH='${PATH}' CC='${CC}' CXX='${CXX}' FC='${FC}' CPPFLAGS='${_MKC_CPPFLAGS}' CFLAGS='${_MKC_CFLAGS}' CXXFLAGS='${_MKC_CXXFLAGS}' FFLAGS='${_MKC_FFLAGS}' LDFLAGS='${_MKC_LDFLAGS}' LDADD='${_MKC_LDADD}' LEX='${LEX}' YACC='${YACC}' MKC_CACHEDIR='${MKC_CACHEDIR}' MKC_COMMON_HEADERS='${MKC_COMMON_HEADERS}' MKC_DELETE_TMPFILES='${MKC_DELETE_TMPFILES}' MKC_SHOW_CACHED='${MKC_SHOW_CACHED}' MKC_NOCACHE='${MKC_NOCACHE}' MKC_VERBOSE=1
 
 ######################################################
 # checking for builtin checks
-.for i in ${MKC_CHECK_BUILTINS} ${MKC_REQUIRE_BUILTINS}
-MKC_CUSTOM_FN.${i} ?=	${BUILTINSDIR}/${i:S/endianess/endianness/}
-MKC_CHECK_CUSTOM   +=	${i}
-MKC_REQUIRE_CUSTOM +=	${MKC_REQUIRE_BUILTINS:M${i}}
-.endfor
+define check_builtins_loop
+$(eval MKC_CUSTOM_FN.${i} ?=	${BUILTINSDIR}/$(subst endianess,endianness,${i}))
+$(eval MKC_CHECK_CUSTOM   +=	${i})
+$(eval MKC_REQUIRE_CUSTOM +=	$(filter ${i},${MKC_REQUIRE_BUILTINS}))
+endef
+
+$(foreach i,${MKC_CHECK_BUILTINS} ${MKC_REQUIRE_BUILTINS},\
+	$(eval $(value check_builtins_loop)))
 
 ######################################################
 # checking for headers
-.for h in ${MKC_CHECK_HEADERS} ${MKC_REQUIRE_HEADERS}
-.if !defined(HAVE_HEADER.${h:S|.|_|g:S|/|_|g})
-HAVE_HEADER.${h:S|.|_|g:S|/|_|g}   !=   env ${mkc.environ} mkc_check_header ${h}
-.endif
-.if ${HAVE_HEADER.${h:S|.|_|g:S|/|_|g}}
-.if empty(MKC_REQUIRE_HEADERS:U:M${h})
-MKC_CFLAGS  +=	-DHAVE_HEADER_${h:tu:S|.|_|g:S|/|_|g}=${HAVE_HEADER.${h:S|.|_|g:S|/|_|g}}
-.endif
-.elif !empty(MKC_REQUIRE_HEADERS:U:M${h})
+
+define check_headers_loop
+HAVE_HEADER.$(subst /,_,$(subst .,_,${h})) ?= $(shell env ${mkc.environ} mkc_check_header ${h})
+ifneq (${HAVE_HEADER.$(subst /,_,$(subst .,_,${h}))},)
+ifeq ($(call filter-glob,${h},${MKC_REQUIRE_HEADERS}),)
+MKC_CFLAGS  +=	-DHAVE_HEADER_$(subst /,_,$(subst .,_,$(call toupper,${h})))=${HAVE_HEADER.$(subst /,_,$(subst .,_,$(call toupper,${h})))}
+endif
+else #!empty(MKC_REQUIRE_HEADERS:U:M${h})
 _fake   !=   env ${mkc.environ} mkc_check_header -d ${h} && echo
 MKC_ERR_MSG +=	"ERROR: cannot find header ${h}"
-.endif
-.endfor
+endif
+endef
 
-.undef MKC_CHECK_HEADERS
-.undef MKC_REQUIRE_HEADERS
+$(foreach h,${MKC_CHECK_HEADERS} ${MKC_REQUIRE_HEADERS},\
+	$(eval $(value check_headers_loop)))
+
+undefine MKC_CHECK_HEADERS
+undefine MKC_REQUIRE_HEADERS
 
 ######################################################
 # checking for functions in libraries
-.for f in ${MKC_CHECK_FUNCLIBS:U} ${MKC_SOURCE_FUNCLIBS:U} ${MKC_REQUIRE_FUNCLIBS:U}
-.if !defined(HAVE_FUNCLIB.${f:S/:/./g})
-HAVE_FUNCLIB.${f:S/:/./g} !=	env ${mkc.environ} mkc_check_funclib ${f:S/:/ /g}
-.endif
-.if !defined(HAVE_FUNCLIB.${f:C/:.*//})
-HAVE_FUNCLIB.${f:C/:.*//} !=	env ${mkc.environ} mkc_check_funclib ${f:C/:.*//}
-.endif
-.if ${HAVE_FUNCLIB.${f:C/:.*//}} != ${HAVE_FUNCLIB.${f:S/:/./g}}
-.if empty(MKC_NOAUTO_FUNCLIBS:U:S/:/./g:M${f:S/:/./g}) && empty(MKC_NOAUTO_FUNCLIBS:U:M1) && ${HAVE_FUNCLIB.${f:S/:/./g}} && !${HAVE_FUNCLIB.${f:C/:.*//}}
-MKC_LDADD +=	-l${f:C/^.*://}
-.endif
-.endif
-.if !${HAVE_FUNCLIB.${f:S/:/./g}} && !${HAVE_FUNCLIB.${f:C/:.*//}} && !empty(_MKC_SOURCE_FUNCS:M${f:C/:.*//})
-MKC_SRCS +=	${MKC_SOURCE_DIR.${f:C/:.*//}.c:U${MKC_SOURCE_DIR}}/${f:C/:.*//}.c
-.endif
-.endfor # f
 
-.for f in ${MKC_REQUIRE_FUNCLIBS:U}
-.if !${HAVE_FUNCLIB.${f:S/:/./g}} && !${HAVE_FUNCLIB.${f:C/:.*//}}
-_fake   !=   env ${mkc.environ} mkc_check_funclib -d ${f:C/:.*//} && echo
-_fake   !=   env ${mkc.environ} mkc_check_funclib -d ${f:S/:/ /g} && echo
+define check_funclibs_loop
+
+HAVE_FUNCLIB.$(subst :,.,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(subst :, ,${f}))
+HAVE_FUNCLIB.$(call sed,s/:.*//,{f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,{f}))
+
+ifneq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})},${HAVE_FUNCLIB.$(subst :,.,${f})})
+ifneq ($(call filter-glob,$(subst :,.,${f}),${MKC_NOAUTO_FUNCLIBS}),)
+ifeq ($(filter 1,${MKC_NOAUTO_FUNCLIBS}),)
+ifneq ($(filter 1,${HAVE_FUNCLIB.$(subst :,.,${f})}),)
+ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
+
+MKC_LDADD +=	-l$(call sed,s/^.*://,{f})
+
+endif
+endif
+endif
+endif
+endif
+
+ifeq ($(filter 1,${HAVE_FUNCLIB.$(subst :,.,${f})}),)
+ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
+ifneq ($(call filter-glob,$(call sed,s/:.*//,${f},${_MKC_SOURCE_FUNCS})),)
+
+_varsuffix := $(call sed,s/:.*//,${f}).c
+_varname := ${MKC_SOURCE_DIR.${_varsuffix}}
+ifdef ${_varname}
+MKC_SRCS += ${${_varname}}
+else
+MKC_SRCS += ${MKC_SOURCE_DIR}/${_varsuffix}
+endif
+
+endif
+endif
+endif
+
+endef
+
+$(foreach f,${MKC_CHECK_FUNCLIBS} ${MKC_SOURCE_FUNCLIBS} ${MKC_REQUIRE_FUNCLIBS}, $(eval $(value check_funclibs_loop)))
+
+define check_require_funclibs
+ifeq ($(filter 1,${HAVE_FUNCLIB.$(subst :,./${f})}),)
+ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
+
+_fake   !=   env ${mkc.environ} mkc_check_funclib -d $(call sed,s/:.*//,${f}) && echo
+_fake   !=   env ${mkc.environ} mkc_check_funclib -d $(subst :, ,${f} && echo
 MKC_ERR_MSG +=	"ERROR: cannot find function ${f}"
-.endif
-.endfor # f
+endif
+endif
+endef
 
-.undef MKC_CHECK_FUNCLIBS
-.undef MKC_REQUIRE_FUNCLIBS
+$(foreach f,${MKC_REQUIRE_FUNCLIBS},$(eval $(value check_require_funclibs)))
+
+undefine MKC_CHECK_FUNCLIBS
+undefine MKC_REQUIRE_FUNCLIBS
 
 ######################################################
 # checking for sizeof(xxx)
-.for t in ${MKC_CHECK_SIZEOF:U}
-.if !defined(SIZEOF.${t:S|.|_|g:S|-|_|g:S|*|P|g:S|/|_|g:S|:|.|g})
-SIZEOF.${t:S|.|_|g:S|-|_|g:S|*|P|g:S|/|_|g:S|:|.|g}   !=   env ${mkc.environ} mkc_check_sizeof ${t:S/:/ /g}
-.endif
-.if ${SIZEOF.${t:S|.|_|g:S|-|_|g:S|*|P|g:S|/|_|g:S|:|.|g}} != failed
-MKC_CFLAGS  +=  -DSIZEOF_${t:S/-/_/g:S| |_|g:S|*|P|g:S|:|_|g:S|.|_|g:tu}=${SIZEOF.${t:S|.|_|g:S|-|_|g:S|*|P|g:S|/|_|g:S|:|.|g}}
-.endif
-.endfor
 
-.undef MKC_CHECK_SIZEOF
+define check_sizeof
+SIZEOF_SUFFIX := $(subst :,.,$(subst /,_,$(subst *,P,\
+		 $(subst -,_,$(subst .,_,${t})))))
+SIZEOF.${SIZEOF_SUFFIX} ?= $(shell \
+	env {mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
+ifneq (${SIZEOF.${SIZEOF_SUFFIX}},failed)
+DSIZEOF_SUFFIX := $(call toupper,\
+			$(subst .,_,$(subst :,_,$(subst *,P,\
+			$(subst $(SPACE),_,$(subst -,_,${t}))))))
+MKC_CFLAGS += -DSIZEOF_${DSIZEOF_SUFFIX}=${SIZEOF.${SIZEOF_SUFFIX}}
+endif
+endef
 
-######################################################
-# checking for declared #define
-.for d in ${MKC_CHECK_DEFINES:U} ${MKC_REQUIRE_DEFINES:U}
-.if !defined(HAVE_DEFINE.${d:S/./_/g:S/:/./g:S|/|_|g})
-HAVE_DEFINE.${d:S/./_/g:S/:/./g:S|/|_|g}   !=   env ${mkc.environ} mkc_check_decl define ${d:S/:/ /g}
-.endif
-.if ${HAVE_DEFINE.${d:S/./_/g:S/:/./g:S|/|_|g}}
-.if empty(MKC_REQUIRE_DEFINES:U:M${d})
-MKC_CFLAGS  +=	-DHAVE_DEFINE_${d:tu:S/:/_/g:S/./_/g:S|/|_|g}=1
-.endif
-.endif
-.endfor
+$(foreach t,${MKC_CHECK_SIZEOF},$(eval $(value check_sizeof)))
 
-.for d in ${MKC_REQUIRE_DEFINES:U}
-.if !${HAVE_DEFINE.${d:S/./_/g:S/:/./g:S|/|_|g}}
-_fake   !=   env ${mkc.environ} mkc_check_decl -d define ${d:S/:/ /g} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find declaration of define ${d}"
-.endif
-.endfor
-
-.undef MKC_CHECK_DEFINES
-.undef MKC_REQUIRE_DEFINES
+undefine MKC_CHECK_SIZEOF
 
 ######################################################
-# checking for declared type
-.for t in ${MKC_CHECK_TYPES:U} ${MKC_REQUIRE_TYPES:U}
-.if !defined(HAVE_TYPE.${t:S/./_/g:S/:/./g:S|/|_|g})
-HAVE_TYPE.${t:S/./_/g:S/:/./g:S|/|_|g}   !=   env ${mkc.environ} mkc_check_decl type ${t:S/:/ /g}
-.endif
-.if ${HAVE_TYPE.${t:S/./_/g:S/:/./g:S|/|_|g}}
-.if empty(MKC_REQUIRE_TYPES:U:M${t})
-MKC_CFLAGS  +=	-DHAVE_TYPE_${t:tu:S/:/_/g:S/./_/g:S|/|_|g}=1
-.endif
-.endif
-.endfor
+# checking for declared #define, types, variables, struct members
+#  			and declared functions
+# make_suffix function below, defined separately for different contexts
 
-.for t in ${MKC_REQUIRE_TYPES:U}
-.if !${HAVE_TYPE.${t:S/./_/g:S/:/./g:S|/|_|g}}
-_fake   !=   env ${mkc.environ} mkc_check_decl -d type ${t:S/:/ /g} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find declaration of type ${t}"
-.endif
-.endfor
+define check_have_one
+SUFFIX := $(call make_suffix,${i})
+ifndef HAVE_${ONE}${n}.${SUFFIX}
+HAVE_${ONE}${n}.${SUFFIX} ?= $(shell \
+	env ${mkc.environ} mkc_check_decl ${one}${n} $(subst :, ,${i}))
+ifneq (${HAVE_${ONE}${n}.${SUFFIX}},)
+ifeq ($(call filter-glob,${i},${MKC_REQUIRE_${ONE}S${n}}),)
+SUFFIX := $(call make_suffix,$(call toupper,${i}))
+MKC_CFLAGS += -DHAVE_${ONE}${n}_${SUFFIX}=1
+endif
+endif
+endif
+endef
 
-.undef MKC_CHECK_TYPES
-.undef MKC_REQUIRE_TYPES
+define check_require_one
+SUFFIX := $(call make_suffix,${i})
+ifeq (${HAVE_${ONE}${n}.${SUFFIX}},)
+_fake != env ${mkc.environ} mkc_check_decl -d ${one}${n} $(subst :, ,${i}) && echo
+MKC_ERR_MSG +=	"ERROR: cannot find declaration of ${one} ${i}"
+endif
+endef
 
-######################################################
-# checking for declared variables
-.for d in ${MKC_CHECK_VARS:U} ${MKC_REQUIRE_VARS:U}
-.if !defined(HAVE_VAR.${d:S/./_/g:S/:/./g:S|/|_|g})
-HAVE_VAR.${d:S/./_/g:S/:/./g:S|/|_|g}   !=   env ${mkc.environ} mkc_check_decl variable ${d:S/:/ /g}
-.endif
-.if ${HAVE_VAR.${d:S/./_/g:S/:/./g:S|/|_|g}}
-.if empty(MKC_REQUIRE_VARS:U:M${d})
-MKC_CFLAGS  +=	-DHAVE_VAR_${d:tu:S/:/_/g:S/./_/g:S|/|_|g}=1
-.endif
-.endif
-.endfor
+# checking one, ex. HAVE_DEFINES
+define loop_one
+ONE := $(call toupper,${one})
+$(foreach i,${MKC_CHECK_${ONE}S${n}} ${MKC_REQUIRE_${ONE}S${n}},\
+	$(eval $(value check_have_one)))
 
-.for d in ${MKC_REQUIRE_VARS:U}
-.if !${HAVE_VAR.${d:S/./_/g:S/:/./g:S|/|_|g}}
-_fake   !=   env ${mkc.environ} mkc_check_decl -d variable ${d:S/:/ /g} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find declaration of variable ${d}"
-.endif
-.endfor
+$(foreach i,${MKC_REQUIRE_${ONE}S${n}},$(eval $(value check_require_one)))
 
-.undef MKC_CHECK_VARS
-.undef MKC_REQUIRE_VARS
+undefine MKC_CHECK_${ONE}S${n}
+undefine MKC_REQUIRE_${ONE}S${n}
+endef
 
-######################################################
-# checking for struct members
-.for m in ${MKC_CHECK_MEMBERS:U} ${MKC_REQUIRE_MEMBERS:U}
-.if !defined(HAVE_MEMBER.${m:S/./_/g:S/:/./g:S|/|_|g:S/-/_/g})
-HAVE_MEMBER.${m:S/./_/g:S/:/./g:S|/|_|g:S/-/_/g}   !=   env ${mkc.environ} mkc_check_decl member ${m:S/:/ /g}
-.endif
-.if ${HAVE_MEMBER.${m:S/./_/g:S/:/./g:S|/|_|g:S/-/_/g}}
-.if empty(MKC_REQUIRE_MEMBERS:U:M${m})
-MKC_CFLAGS  +=	-DHAVE_MEMBER_${m:tu:S/:/_/g:S/./_/g:S|/|_|g:S/-/_/g}=1
-.endif
-.endif
-.endfor
+# for defines, types, vars, funcs
+define make_suffix
+$(subst /,_,$(subst :,.,$(subst .,_,${1})))
+endef
 
-.for m in ${MKC_REQUIRE_MEMBERS:U}
-.if !${HAVE_MEMBER.${m:S/./_/g:S/:/./g:S|/|_|g:S/-/_/g}}
-_fake   !=   env ${mkc.environ} mkc_check_decl -d member ${m:S/:/ /g} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find member ${m}"
-.endif
-.endfor
+n :=
+ONES_TO_CHECK := define type var
+$(foreach one,${ONES_TO_CHECK},$(eval $(value loop_one)))
 
-.undef MKC_CHECK_MEMBERS
-.undef MKC_REQUIRE_MEMBERS
+#for funcs
+one := func
+$(foreach n,0 1 2 3 4 5 6 7 8 9,$(eval $(value loop_one)))
 
-######################################################
-# checking for declared functions
-.for n in 0 1 2 3 4 5 6 7 8 9
+#for members
+define make_suffix
+$(subst -,_,$(subst /,_,$(subst :,.,$(subst .,_,${1}))))
+endef
 
-.for d in ${MKC_CHECK_FUNCS${n}:U} ${MKC_REQUIRE_FUNCS${n}:U}
-.if !defined(HAVE_FUNC${n}.${d:S/./_/g:S/:/./g:S|/|_|g})
-HAVE_FUNC${n}.${d:S/./_/g:S/:/./g:S|/|_|g}   !=   env ${mkc.environ} mkc_check_decl func${n} ${d:S/:/ /g}
-.endif
-.if ${HAVE_FUNC${n}.${d:S/./_/g:S/:/./g:S|/|_|g}}
-.if empty(MKC_REQUIRE_FUNCS${n}:U:M${d})
-MKC_CFLAGS  +=	-DHAVE_FUNC${n}_${d:tu:S/:/_/g:S/./_/g:S|/|_|g}=1
-.endif
-.endif
-.endfor # d
+#no sense for foreach
+one := member
+$(eval $(value loop_one))
 
-.for d in ${MKC_REQUIRE_FUNCS${n}:U}
-.if !${HAVE_FUNC${n}.${d:S/./_/g:S/:/./g:S|/|_|g}}
-_fake   !=   env ${mkc.environ} mkc_check_decl -d func${n} ${d:S/:/ /g} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find declaration of function ${d}"
-.endif
-.endfor # d
-
-MKC_CHECK_FUNCS${n}   := # workaround for buggy bmake-20110606
-MKC_REQUIRE_FUNCS${n} := # workaround for buggy bmake-20110606
-
-.undef MKC_CHECK_FUNCS${n}
-.undef MKC_REQUIRE_FUNCS${n}
-
-.endfor # n
 
 ######################################################
 # custom checks
-.for c in ${MKC_CHECK_CUSTOM} ${MKC_REQUIRE_CUSTOM}
-.if !defined(CUSTOM.${c})
-.if !defined(MKC_CUSTOM_FN.${c})
-MKC_CUSTOM_FN.${c} =	${c}.c
-.endif
-.if empty(MKC_CUSTOM_FN.${c}:M/*)
-MKC_CUSTOM_FN.${c} :=	${MKC_CUSTOM_DIR}/${MKC_CUSTOM_FN.${c}}
-.endif
-.if ${c} == "endianess"
-.warning "endianess test deprecated; use endianness instead"
-.endif
-CUSTOM.${c} !=		env ${mkc.environ} mkc_check_custom ${MKC_CUSTOM_FN.${c}}
-.endif
-.if !empty(CUSTOM.${c}) && ${CUSTOM.${c}} != 0
-.if empty(MKC_REQUIRE_CUSTOM:U:M${c})
-MKC_CFLAGS  +=		-DCUSTOM_${c:tu}=${CUSTOM.${c}}
-.endif
-.endif
-.endfor
+define check_custom
 
-.for c in ${MKC_REQUIRE_CUSTOM}
-.if empty(CUSTOM.${c}) || ${CUSTOM.${c}} == 0
+ifndef CUSTOM.${c}
+ifndef MKC_CUSTOM_FN.${c}
+MKC_CUSTOM_FN.${c} := ${c}.c
+endif
+ifeq ($(filter /%,${MKC_CUSTOM_FN.${c}}),)
+MKC_CUSTOM_FN.${c} := ${MKC_CUSTOM_DIR}/${MKC_CUSTOM_FN.${c}}
+endif
+ifeq (${c},endianess)
+$(warning endianess test deprecated; use endianness instead)
+endif
+CUSTOM.${c} != env ${mkc.environ} mkc_check_custom ${MKC_CUSTOM_FN.${c}}
+endif #ifndef CUSTOM.${c}
+
+ifneq (${CUSTOM.${c}},)
+ifneq (${CUSTOM.${c}},0)
+ifeq ($(filter ${c},${MKC_REQUIRE_CUSTOM}),)
+MKC_CFLAGS  +=		-DCUSTOM_$(call toupper,${c})=${CUSTOM.${c}}
+endif
+endif
+endif
+
+endef
+
+define check_require_custom
+#.if empty(CUSTOM.${c}) || ${CUSTOM.${c}} == 0
+ifeq ($(if $(call seq,${CUSTOM.${c}},0),,${CUSTOM.${c}}),)
 _fake   !=   env ${mkc.environ} mkc_check_custom -d ${MKC_CUSTOM_FN.${c}} && echo
 MKC_ERR_MSG +=		"ERROR: custom test ${c} failed"
-.endif
-.endfor
+endif
+endef
 
-.for c in ${MKC_CHECK_BUILTINS} 
-BUILTIN.${c} =		${CUSTOM.${c}}
-.endfor
+$(foreach c,${MKC_CHECK_CUSTOM} ${MKC_REQUIRE_CUSTOM},\
+	$(eval $(value check_custom)))
+
+$(foreach c,${MKC_REQUIRE_CUSTOM},\
+	$(eval $(value check_require_custom)))
+
+$(foreach c,${MKC_CHECK_BUILTINS}, $(eval \
+BUILTIN.${c} :=		${CUSTOM.${c}} \
+))
 
 ######################################################
 # checking for programs
-.for p in ${MKC_CHECK_PROGS} ${MKC_REQUIRE_PROGS}
-p_      :=	${p}
-prog_id :=	${MKC_PROG.id.${p:S|+|x|g}:U${p}:S|/|_|g}
-.ifdef PROG.${prog_id}
-.elif !empty(p_:M/*)
-PROG.${prog_id} = ${p}
-.else
-PROG.${prog_id} != env ${mkc.environ} mkc_check_prog -i '${prog_id}' '${p}'
-.endif # !defined(PROG.${prog_id})
-.ifndef HAVE_PROG.${prog_id}
-.if !empty(PROG.${prog_id}) && exists(${PROG.${prog_id}})
-HAVE_PROG.${prog_id} =		1
-.else
-HAVE_PROG.${prog_id} =		0
-.endif
-.endif # ifndef HAVE_PROG.${prog_id}
 
-.if !${HAVE_PROG.${prog_id}} && !empty(MKC_REQUIRE_PROGS:U1:M${p})
+define check_progs
+
+_varname := MKC_PROG_id.$(subst +,x,${p})
+ifdef ${_varname}
+prog_id := ${_varname}
+else
+prog_id := $(subst /,_,${p})
+endif
+
+ifdef PROG.${prog_id}
+else ifneq ($(call filter-glob,/*,${p}),)
+PROG.${prog_id} := ${p}
+else
+PROG.${prog_id} != env ${mkc.environ} mkc_check_prog -i '${prog_id}' '${p}'
+endif
+
+ifndef HAVE_PROG.${prog_id}
+ifneq (${PROG.${prog_id}},)
+HAVE_PROG.${prog_id} := $(if $(shell which ${PROG.${prog_id}}),1,0)
+endif
+endif
+
+ifeq (${HAVE_PROG.${prog_id}},0)
+ifneq ($(filter ${p},${MKC_REQUIRE_PROGS}),)
 _fake   !=   env ${mkc.environ} mkc_check_prog -d -i '${prog_id}' '${p}' && echo
 MKC_ERR_MSG +=	"ERROR: cannot find program ${p}"
-.endif
-.endfor # p
+endif
+endif
 
-.undef MKC_CHECK_PROGS
-.undef MKC_REQUIRE_PROGS
+endef
 
-.undef MKC_CHECK_CUSTOM
-.undef MKC_REQUIRE_CUSTOM
+$(foreach p,${MKC_CHECK_PROGS} ${MKC_REQUIRE_PROGS},\
+	$(eval $(value check_progs)))
+
+undefine MKC_CHECK_PROGS
+undefine MKC_REQUIRE_PROGS
+
+undefine MKC_CHECK_CUSTOM
+undefine MKC_REQUIRE_CUSTOM
 
 ######################################################
 # checks whether $CC accepts some arguments
-.for a in ${MKC_CHECK_CC_OPTS}
-.if !defined(HAVE_CC_OPT.${a:S/=/_/g})
-HAVE_CC_OPT.${a:S/=/_/g} !=	env ${mkc.environ} CARGS=${a:Q} mkc_check_custom -b -e -p cc_option -n ${a:Q} -m 'whether ${CC} supports option '${a:Q} ${BUILTINSDIR}/easy.c
-.endif # !defined(HAVE_CC_OPT.${a})
-.endfor # a
 
-# checks whether $CXX accepts some arguments
-.for a in ${MKC_CHECK_CXX_OPTS}
-.if !defined(HAVE_CXX_OPT.${a:S/=/_/g})
-HAVE_CXX_OPT.${a:S/=/_/g} !=	env ${mkc.environ} CARGS=${a:Q} mkc_check_custom -b -e -p cxx_option -n ${a:Q} -m 'whether ${CXX} supports option '${a:Q} ${BUILTINSDIR}/easy.cc
-.endif # !defined(HAVE_CXX_OPT.${a})
-.endfor # a
+define check_cc_opts
+ifndef HAVE_CC_OPT.$(subst =,_,${a})
+aQ := $(call shell-quote,${a})
+HAVE_CC_OPT.$(subst =,_,${a}) != env ${mkc.environ} CARGS=${aQ} mkc_check_custom -b -e -p cc_option -n ${aQ} -m 'whether ${CC} supports option '${aQ} ${BUILTINSDIR}/easy.c
+endif
+endef
+
+$(foreach a,${MKC_CHECK_CC_OPTS},$(eval $(value check_cc_opts)))
+
+define check_cxx_opts
+ifndef HAVE_CXX_OPT.$(subst =,_,${a})
+aQ := $(call shell-quote,${a})
+HAVE_CXX_OPT.$(subst =,_,${a}) != env ${mkc.environ} CARGS=${aQ} mkc_check_custom -b -e -p cxx_option -n ${aQ} -m 'whether ${CXX} supports option '${aQ} ${BUILTINSDIR}/easy.cc
+endif
+endef
+
+$(foreach a,${MKC_CHECK_CXX_OPTS},$(eval $(value check_cxx_opts)))
 
 ######################################################
 # prototype checks
-.for p in ${MKC_CHECK_PROTOTYPES} ${MKC_REQUIRE_PROTOTYPES}
-.if !defined(HAVE_PROTOTYPE.${p})
-HAVE_PROTOTYPE.${p} !=	env ${mkc.environ} mkc_check_decl prototype \
-	${MKC_PROTOTYPE_FUNC.${p}:Q} ${MKC_PROTOTYPE_HEADERS.${p}}
-.endif # !defined(HAVE_PROTOTYPE.${p})
-.if ${HAVE_PROTOTYPE.${p}}
-MKC_CFLAGS  +=	-DHAVE_PROTOTYPE_${p:tu}=1
-.elif !empty(MKC_REQUIRE_PROTOTYPES:U:M${p})
-_fake       !=	env ${mkc.environ} mkc_check_decl -d prototype \
-	${MKC_PROTOTYPE_FUNC.${p}:Q} ${MKC_PROTOTYPE_HEADERS.${p}}; echo
-MKC_ERR_MSG +=		"ERROR: prototype test ${p} failed"
-.endif # ${PROTOTYPE.${p}}
-.endfor # p
 
-.undef MKC_CHECK_PROTOTYPES
-.undef MKC_REQUIRE_PROTOTYPES
+define check_prototypes
+ifndef HAVE_PROTOTYPE.${p}
+HAVE_PROTOTYPE.${p} != env ${mkc.environ} mkc_check_decl prototype \
+	$(call shell-quote,${MKC_PROTOTYPE_FUNC.${p}}) \
+	${MKC_PROTOTYPE_HEADERS.${p}}
+endif
+
+ifeq (HAVE_PROTOTYPE.${p},1)
+MKC_CFLAGS  +=	-DHAVE_PROTOTYPE_$(call toupper,${p})=1
+else ifneq ($(call filter-glob,${p},${MKC_REQUIRE_PROTOTYPES}),)
+_fake       !=	env ${mkc.environ} mkc_check_decl -d prototype \
+	            $(call shell-quote,${MKC_PROTOTYPE_FUNC.${p}}) \
+		    ${MKC_PROTOTYPE_HEADERS.${p}}; echo
+MKC_ERR_MSG +=		"ERROR: prototype test ${p} failed"
+endif
+endef
+
+$(foreach p,${MKC_CHECK_PROTOTYPES} ${MKC_REQUIRE_PROTOTYPES},\
+	$(eval $(value check_prototypes)))
+
+undefine MKC_CHECK_PROTOTYPES
+undefine MKC_REQUIRE_PROTOTYPES
 
 ######################################################
-.else # MKCHECKS == yes
+else # MKCHECKS == yes
 
-.for i in ${_MKC_SOURCE_FUNCS}
-MKC_SRCS +=	${i} # for changing CLEANFILES
-.endfor
+# for changing CLEANFILES
+$(eval MKC_SRCS += ${_MKC_SOURCE_FUNCS})
 
-.endif # MKCHECKS?
+endif # MKCHECKS?
 
 ######################################################
 # final assignments
-.include <mkc_imp.conf-final.mk>
+include mkc_imp.conf-final.mk
 
 ######################################################
 ######################################################
 ######################################################
 
-.undef MKC_SOURCE_FUNCLIBS
+undefine MKC_SOURCE_FUNCLIBS

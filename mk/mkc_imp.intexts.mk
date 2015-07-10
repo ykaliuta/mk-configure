@@ -8,7 +8,7 @@
 # @sysconfdir@, @libdir@, @bindir@, @sbindir@, @datadir@ etc. with
 # real ${PREFIX}, ${SYSCONFDIR} etc. See examples/ projects.
 
-.ifndef _MKC_IMP_INTEXTS_MK
+ifndef _MKC_IMP_INTEXTS_MK
 _MKC_IMP_INTEXTS_MK := 1
 
 MESSAGE.gen ?=	@${_MESSAGE} "GEN: ${.TARGET}"
@@ -25,35 +25,44 @@ INTEXTS_SED  +=	-e 's,@incsdir@,${INCSDIR},g'
 INTEXTS_SED  +=	-e 's,@vardir@,${VARDIR},g'
 INTEXTS_SED  +=	-e 's,@sharedstatedir@,${SHAREDSTATEDIR},g'
 
-.if !make(clean) && !make(cleandir) && !make(distclean) #&& empty(MKC_ERR_MSG)
-.  if !empty(INTEXTS_REPLS) && ${INTEXTS_REPLS:[\#]:M*[13579]} != ""
-MKC_ERR_MSG +=	"ERROR: odd number of tokens in INTEXTS_REPLS"
-.  else
-.    for _pattern _repl in ${INTEXTS_REPLS}
-INTEXTS_SED  +=	-e 's,@${_pattern}@,${_repl},g'
-.    endfor
-.  endif
-.endif
+define __first
+INTEXTS_SED += -e 's$(COMMA)@$(firstword $1)$(call __second,$(wordlist 2,$(words $1),$1))
+endef
 
-.for i in ${INFILES}
-.NOPATH: ${i:T}
-${i:T} : ${i}.in
+define __second
+@,$(firstword $1)$(COMMA)g'$(call __start,$(wordlist 2,$(words $1),$1))
+endef
+
+define __start
+$(if $1,$(eval $(call __first,$1)),)
+endef
+
+
+ifeq ($(filter clean cleandir distclean,${MAKECMDGOALS}),)
+ifneq ($(shell echo $(words ${INTEXTS_REPLS}) | grep '.*[13579]$$'),)
+MKC_ERR_MSG +=	"ERROR: odd number of tokens in INTEXTS_REPLS"
+else
+$(call __start,${INTEXTS_REPLS})
+endif
+endif
+
+#TODO
+#.NOPATH: ${i:T}
+$(notdir ${INFILES}): %: %.in
 	${MESSAGE.gen}
 	${_V} sed ${INTEXTS_SED} ${.ALLSRC} > ${.TARGET} && \
 	chmod 0644 ${.TARGET}
-.endfor
 
-.for i in ${INSCRIPTS}
-.NOPATH: ${i:T}
-${i:T} : ${i}.in
+#TODO
+#.NOPATH: ${i:T}
+$(notdir ${INSCRIPTS}): %: %.in
 	${MESSAGE.gen}
 	${_V} sed ${INTEXTS_SED} ${.ALLSRC} > ${.TARGET} && \
 	chmod 0755 ${.TARGET}
-.endfor
 
-CLEANFILES   +=	${INSCRIPTS:T} ${INFILES:T}
+CLEANFILES   +=	$(notdir ${INSCRIPTS}) $(notdir ${INFILES})
 
-realdo_all: ${INSCRIPTS:T} ${INFILES:T}
+realdo_all: $(notdir ${INSCRIPTS}) $(notdir ${INFILES})
 
 ######################################################################
-.endif # _MKC_IMP_INTEXTS_MK
+endif # _MKC_IMP_INTEXTS_MK

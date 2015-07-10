@@ -7,71 +7,82 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_MKC_IMP_PROG_MK)
+ifdef _MKC_IMP_PROG_MK
 _MKC_IMP_PROG_MK := 1
 
-proginstall:	.PHONY # ensure existence
+proginstall: # ensure existence
+.PHONY: proginstall
 
 CFLAGS +=	${COPTS}
 
-__proginstall: .USE
+__proginstall = \
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} ${STRIPFLAG} \
-	    -o ${BINOWN:Q} -g ${BINGRP:Q} -m ${BINMODE} ${.ALLSRC} ${.TARGET}
+	    -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} ${.ALLSRC} ${.TARGET}
 
-.for p in ${PROGS}
+# ${p} is prog
+define __gen_prog_rules
 do_install1:	proginstall
 
 _SRCS_ALL += ${SRCS.${p}}
 
-DPSRCS.${p} =	${SRCS.${p}:M*.l:.l=.c} ${SRCS.${p}:M*.y:.y=.c}
+DPSRCS.${p} = $(patsubst %.l,%.c,\
+		$(patsubst %.y,%.c,\
+		  $(filter %.l %.c,${SRCS})))
+
 CLEANFILES +=	${DPSRCS.${p}}
-.if defined(YHEADER)
-CLEANFILES +=	${SRCS.${p}:M*.y:.y=.h}
-.endif # defined(YHEADER)
+ifdef YHEADER
+CLEANFILES += $(patsubst %.y,%.h,$(filter %.y,${SRCS}))
+endif # defined(YHEADER)
 
-OBJS.${p} =	${SRCS.${p}:N*.h:N*.sh:N*.fth:T:R:S/$/.o/g}
+OBJS.${p} =	$(addsuffix .o,$(basename $(notdir \
+			$(filter-out %.h %.sh %.fth,${SRCS}))))
 
-.if !empty(SRCS.${p}:N*.h:N*.sh:M*/*:H)
-SRC_PATHADD +=	${SRCS:N*.h:N*.sh:M*/*:H}
-.endif
+SRC_PATHADD += $(filter-out ./,$(dir $(filter-out %.h %.sh,${SRCS})))
 
-.if defined(OBJS.${p}) && !empty(OBJS.${p})
-.NOPATH: ${OBJS.${p}}
+ifneq (${OBJS.${p}},)
+# TODO
+#.NOPATH: ${OBJS.${p}}
 
 ${p}: ${LIBCRT0} ${DPSRCS.${p}} ${OBJS.${p}} ${LIBC} ${LIBCRTBEGIN} ${LIBCRTEND} ${DPADD}
-.if !commands(${p})
+# TODO
+#.if !commands(${p})
 	${MESSAGE.ld}
 	${_V}${LDREAL} -o ${.TARGET} ${OBJS.${p}} \
 	    ${LDFLAGS0} ${LDADD0} \
 	    ${LDFLAGS} ${LDFLAGS.prog} ${LDADD}
-.endif # !commands(...)
+#.endif # !commands(...)
 
-.endif	# defined(OBJS.${p}) && !empty(OBJS.${p})
+endif	# defined(OBJS.${p}) && !empty(OBJS.${p})
 
-.if !defined(MAN) && exists(${p}.1)
+ifndef MAN
+ifneq ($(wildcard ${p}.1),)
 MAN +=		${p}.1
-.endif # !defined(MAN)
+endif
+endif # !defined(MAN)
 
-PROGNAME.${p} ?=	${PROGNAME:U${p}}
+PROGNAME.${p} ?=	$(or ${PROGNAME},${p})
 
-.if ${MKINSTALL:tl} == "yes"
+ifeq ($(call tolower,${MKINSTALL}),yes)
 dest_prog.${p}   =	${DESTDIR}${BINDIR}/${PROGNAME.${p}}
 UNINSTALLFILES  +=	${dest_prog.${p}}
-INSTALLDIRS     +=	${dest_prog.${p}:H}
+INSTALLDIRS     +=	$(dir ${dest_prog.${p}})
 
 proginstall: ${dest_prog.${p}}
 .PRECIOUS:    ${dest_prog.${p}}
 .PHONY:       ${dest_prog.${p}}
-.endif # ${MKINSTALL:tl} == "yes"
+endif # ${MKINSTALL:tl} == "yes"
 
-${DESTDIR}${BINDIR}/${PROGNAME.${p}}: ${p} __proginstall
+${DESTDIR}${BINDIR}/${PROGNAME.${p}}: ${p}
+	${__proginstall}
 
 CLEANFILES +=	${OBJS.${p}}
 
-.endfor # ${PROGS}
+endef
+
+$(foreach p,${PROGS},$(eval $(value __gen_prog_rules)))
 
 realdo_all: ${PROGS}
 
 CLEANFILES += ${PROGS}
 
-.endif # _MKC_IMP_PROG_MK
+endif # _MKC_IMP_PROG_MK

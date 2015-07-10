@@ -15,34 +15,36 @@ FILESDIR =	${MKFILESDIR}
 INFILES +=	mkc_imp.vars.mk
 
 #################################################
-.for i in prog_mkdep prog_nbmkdep
-MKC_CHECK_CUSTOM   +=	${i}
-MKC_CUSTOM_FN.${i}  =	${.CURDIR}/../builtins/${i}
-.endfor
+define __assign_custom
+$(eval MKC_CHECK_CUSTOM   +=	${i})
+MKC_CUSTOM_FN.${i}  :=	${CURDIR}/../builtins/${i}
+endef
+
+$(foreach i,prog_mkdep prog_nbmkdep,$(eval $(value __assign_custom)))
 
 MKC_CHECK_PROGS    +=	makedepend
 
-.include <mkc.configure.mk>
+include mkc.configure.mk
 
-.if !empty(CUSTOM.prog_nbmkdep)
+ifneq (${CUSTOM.prog_nbmkdep},)
 mkdep_cmd  =		${CUSTOM.prog_nbmkdep}
 mkdep_type =		nbmkdep
-.elif !empty(CUSTOM.prog_mkdep)
+else ifneq (${CUSTOM.prog_mkdep},)
 mkdep_cmd  =		${CUSTOM.prog_mkdep}
 mkdep_type =		mkdep
-.elif ${HAVE_PROG.makedepend:U0}
+else ifeq (${HAVE_PROG.makedepend},1)
 makedepend_cmd =	${PROG.makedepend}
 mkdep_cmd  =		mkdep
 mkdep_type =		makedepend
-.else
+else
 MKC_ERR_MSG +=		"mkdep(1) cannot be found"
-.endif
+endif
 
-.if exists(/usr/xpg4/bin/nm)
+ifneq ($(shell which /usr/xpg4/bin/nm 2>/dev/null),)
 PROG.nm ?=              /usr/xpg4/bin/nm
-.else
+else
 MKC_REQUIRE_PROGS +=    nm
-.endif
+endif
 
 makedepend_cmd ?=	makedepend
 
@@ -53,4 +55,4 @@ INTEXTS_REPLS +=	featuresdir    ${FEATURESDIR}
 INTEXTS_REPLS +=	NM             ${PROG.nm}
 
 #################################################
-.include <mkc.mk>
+include mkc.mk

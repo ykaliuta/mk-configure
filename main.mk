@@ -3,7 +3,7 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.sinclude "cheusov_local_settings.mk" # for debugging
+-include "cheusov_local_settings.mk" # for debugging
 
 ##################################################
 SUBPRJ_DFLT =   builtins helpers mk scripts features doc
@@ -15,9 +15,8 @@ tests       =	configure_test mkinstall mkshlib mkstaticlib mkpiclib \
    intexts_cleantrg require_prototype test_subprj_dash test_mkc_vs_PROG \
    test_mkc_vs_LIB test_mkc_vs_SUBDIR test_mkc_vs_SUBPRJ endianess \
    create_cachedir sys_queue predopost_targets FSRCDIR
-.for t in ${tests}
-SUBPRJ +=	tests/${t}:tests
-.endfor
+
+SUBPRJ +=	$(patsubst %,tests/%:tests,${tests})
 
 examples    =	hello_world hello_scripts hello_files hello_sizeof hello_lex \
    hello_yacc hello_calc2 subprojects hello_compilers hello_plugins \
@@ -28,12 +27,11 @@ examples    =	hello_world hello_scripts hello_files hello_sizeof hello_lex \
    tools2 pkgconfig3 hello_SLIST hello_RBTREE hello_errwarn hello_fgetln \
    hello_autotools hello_autoconf hello_libdeps hello_compatlib \
    hello_require_tools check_compiler_opts
-.for t in ${examples}
-SUBPRJ +=	examples/${t}:tests
-.endfor
+
+SUBPRJ +=	$(patsubst %,examples/%:tests,${examples})
 
 ##################################################
-SHRTOUT =		yes
+export SHRTOUT =		yes
 
 PROJECTNAME =		mk-configure
 
@@ -42,17 +40,15 @@ NOEXPORT_VARNAMES =	MKC_CACHEDIR
 
 DIST_TARGETS =		pdf clean-mk clean-scripts mkc_clean
 
-INSTALL      =		${.CURDIR}/scripts/mkc_install
-PATH        :=		${OBJDIR_builtins}:${OBJDIR_helpers}:${.CURDIR}/helpers:${OBJDIR_scripts}:${.CURDIR}/scripts:${PATH}
-
-.export SHRTOUT INSTALL PATH
+export INSTALL      =		${CURDIR}/scripts/mkc_install
+export PATH        :=		${OBJDIR_builtins}:${OBJDIR_helpers}:${CURDIR}/helpers:${OBJDIR_scripts}:${CURDIR}/scripts:${PATH}
 
 ##################################################
 .PHONY: pdf
 pdf: all-presentation
 pdf:
 	@set -e; cd presentation; \
-	${MAKE} ${MAKEFLAGS} clean-garbage; \
+	${MAKE} clean-garbage; \
 	rm -f myprojects.*
 
 ##################################################
@@ -61,5 +57,5 @@ clean:		clean-tests clean-presentation
 test:		test-tests
 
 ##################################################
-.include "Makefile.inc"
-.include <mkc.mk>
+include Makefile.inc
+include mkc.mk

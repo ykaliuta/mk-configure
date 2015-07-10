@@ -7,12 +7,12 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.ifndef _MKC_PLATFORM_MK
+ifndef _MKC_PLATFORM_MK
 _MKC_PLATFORM_MK := 1
 
 ####################
 # cross tools
-.ifdef SYSROOT
+ifdef SYSROOT
 CFLAGS.sysroot  ?=	--sysroot=${SYSROOT}
 LDFLAGS.sysroot ?=	--sysroot=${SYSROOT}
 CFLAGS   +=	${CFLAGS.sysroot}
@@ -37,16 +37,16 @@ RANLIB    =	${TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}ranlib
 SIZE      =	${TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size
 #STRINGS   =	${TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}strings
 STRIP     =	${TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}strip
-.endif
+endif # SYSROOT
 
 ####################
 SHLIB_EXT.Darwin =	.dylib
 SHLIB_EXT.HP-UX  =	.sl
 
-SHLIB_EXT       ?=	${SHLIB_EXT.${TARGET_OPSYS}:U.so}
+SHLIB_EXT       ?=	$(or ${SHLIB_EXT.${TARGET_OPSYS}},.so)
 
 DLL_EXT.Darwin  =	.bundle
-DLL_EXT        ?=	${DLL_EXT.${TARGET_OPSYS}:U${SHLIB_EXT}}
+DLL_EXT		?=	$(or ${DLL_EXT.${TARGET_OPSYS}},${SHLIB_EXT})
 
 ####################
 INSTALL.NetBSD    =	/usr/bin/install
@@ -56,8 +56,7 @@ INSTALL.DragonFly =	/usr/bin/install
 INSTALL.MirBSD    =	/usr/bin/install
 INSTALL.Haiku     =	/bin/install
 
-INSTALL  ?=		${INSTALL.${TARGET_OPSYS}:Umkc_install}
-
+INSTALL  ?=		$(or ${INSTALL.${TARGET_OPSYS}},mkc_install)
 # The following line is for debugging only
 #INSTALL=		mkc_install
 
@@ -90,28 +89,37 @@ CPP.QNX =	${CC} -E
 
 CPP.AIX =	${CC} -E
 
-CC  ?=		${CC.${TARGET_OPSYS}:Ucc}
-CXX ?=		${CXX.${TARGET_OPSYS}:Uc++}
-CPP ?=		${CPP.${TARGET_OPSYS}:Ucpp}
+CC  ?=		$(or ${CC.${TARGET_OPSYS}},cc)
+CXX ?=		$(or ${CXX.${TARGET_OPSYS}},c++)
+CPP ?=		$(or ${CPP.${TARGET_OPSYS}},cpp)
 
 ####################
 CPPFLAGS.Interix  =	-D_ALL_SOURCE
 CPPFLAGS.UnixWare =	-DUNIXWARE
 
-CPPFLAGS +=	${CPPFLAGS.${TARGET_OPSYS}:U}
+CPPFLAGS +=	${CPPFLAGS.${TARGET_OPSYS}}
 
 ############################################################
 # CC compiler type
-.if make(cleandir) || make(distclean) || make(clean)
-.elif ${MKCHECKS:Uno:tl} == "yes" && !defined(CC_TYPE) && (defined(PROGS) || defined(LIB) || defined(MKC_CHECK_PROTOTYPES))
+ifeq ($(filter ${CLEAN_TARGETS},${MAKECMDGOALS}),)
+ifeq ($(call tolower,${MKCHECKS}),yes)
+ifndef CC_TYPE
+# (defined(PROGS) || defined(LIB) || defined(MKC_CHECK_PROTOTYPES))
+ifneq ($(strip $(filter-out undefined, \
+	$(origin PROGS) $(origin LIB) $(origin MKC_CHECK_PROTOTYPES))),)
+
 mkc.cc_type.environ = CC='${CC}' CXX='${CXX}' CPPFLAGS='${CPPFLAGS}' CFLAGS='${CFLAGS}' LDFLAGS='${LDFLAGS}' LDADD='${LDADD}' MKC_CACHEDIR='${MKC_CACHEDIR}' MKC_DELETE_TMPFILES='${MKC_DELETE_TMPFILES}' MKC_SHOW_CACHED='${MKC_SHOW_CACHED}' MKC_NOCACHE='${MKC_NOCACHE}' MKC_VERBOSE=1
-.if !empty(src_type:Mc)
+ifeq (${src_type},c)
 CC_TYPE  !=	env ${mkc.cc_type.environ} mkc_check_compiler
-.endif
-.if !empty(src_type:Mcxx)
+endif
+ifeq (${src_type},cxx)
 CXX_TYPE !=	env ${mkc.cc_type.environ} mkc_check_compiler -x
-.endif # src_type
-.endif # cleandir|distclean|...
+endif # src_type
+
+endif # PROGS LIB MKC_CHECK_PROTOTYPES
+endif # CC_TYPE
+endif # MKCHECKS
+endif # cleandir|distclean|...
 
 CC_TYPE  ?=	unknown
 CXX_TYPE ?=	unknown
@@ -139,16 +147,16 @@ CFLAGS.warnerr.sunpro =		-errwarn=%all
 CFLAGS.warnerr.clang  =		-Werror
 
 #WARNERR?=	${${WARNS:U0}==4:?yes:no} # Eh, buggy bmake :-(
-.if ${WARNS:U0} == 4
+ifeq (${WARNS},4)
 WARNERR  ?=	yes
-.else
+else
 WARNERR  ?=	no
-.endif
+endif
 
-.if ${WARNERR:tl} == "yes"
+ifeq ($(call tolower,${WARNERR}),yes)
 CFLAGS.warnerr   =	${CFLAGS.warnerr.${CC_TYPE}}
 CXXFLAGS.warnerr =	${CFLAGS.warnerr.${CXX_TYPE}}
-.endif
+endif
 
 ####################
 # C warns for GCC
@@ -224,10 +232,14 @@ CFLAGS.pic.mipspro =		-KPIC
 CFLAGS.pic.sunpro =		-xcode=pic32 # -KPIC
 CFLAGS.pic.hpc =		+Z # +z
 CFLAGS.pic.ibmc =		-qpic=large # -qpic=small
-CFLAGS.pic.decc =		# ?
+# ?
+CFLAGS.pic.decc =
 
-CFLAGS.pic   ?=	${CFLAGS.pic.${CC_TYPE}.${TARGET_OPSYS}:U${CFLAGS.pic.${CC_TYPE}:U}}
-CXXFLAGS.pic ?=	${CFLAGS.pic.${CXX_TYPE}.${TARGET_OPSYS}:U${CFLAGS.pic.${CXX_TYPE}:U}}
+
+CFLAGS.pic   ?= $(or ${CFLAGS.pic.${CC_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.pic.${CC_TYPE}})
+CXXFLAGS.pic   ?= $(or ${CFLAGS.pic.${CXX_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.pic.${CXX_TYPE}})
 
 ####################
 CFLAGS.pie.gcc.Interix =
@@ -235,8 +247,10 @@ CFLAGS.pie.gcc =		-fPIE -DPIC
 CFLAGS.pie.icc =		-fPIE -DPIC
 CFLAGS.pie.clang =		-fPIE -DPIC
 
-CFLAGS.pie   ?=	${CFLAGS.pie.${CC_TYPE}.${TARGET_OPSYS}:U${CFLAGS.pie.${CC_TYPE}}:U${CFLAGS.pic}}
-CXXFLAGS.pie ?=	${CFLAGS.pie.${CC_TYPE}.${TARGET_OPSYS}:U${CFLAGS.pie.${CXX_TYPE}}:U${CXXFLAGS.pic}}
+CFLAGS.pie   ?= $(or ${CFLAGS.pie.${CC_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.pie.${CC_TYPE}})
+CXXFLAGS.pie   ?= $(or ${CFLAGS.pie.${CXX_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.pie.${CXX_TYPE}})
 
 ####################
 CFLAGS.ssp.gcc =		-fstack-protector -Wstack-protector --param ssp-buffer-size=1
@@ -244,20 +258,22 @@ CFLAGS.ssp.icc =		-fstack-security-check
 CFLAGS.ssp.ibmc =		-qstackprotect
 CFLAGS.ssp.clang =		${CFLAGS.ssp.gcc}
 
-CFLAGS.ssp   ?=	${CFLAGS.ssp.${CC_TYPE}.${TARGET_OPSYS}:U${CFLAGS.ssp.${CC_TYPE}:U}}
-CXXFLAGS.ssp ?=	${CFLAGS.ssp.${CXX_TYPE}.${TARGET_OPSYS}:U${CFLAGS.ssp.${CXX_TYPE}:U}}
+CFLAGS.ssp   ?= $(or ${CFLAGS.ssp.${CC_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.ssp.${CC_TYPE}})
+CXXFLAGS.ssp   ?= $(or ${CFLAGS.ssp.${CXX_TYPE}.${TARGET_OPSYS}},\
+			${CFLAGS.ssp.${CXX_TYPE}})
 
 ####################
 RANLIB.IRIX64 =		true
 
-RANLIB ?=		${RANLIB.${TARGET_OPSYS}:Uranlib}
+RANLIB ?=		$(or ${RANLIB.${TARGET_OPSYS}} ranlib)
 
 ####################
 NROFF_MAN2CAT.SunOS ?=		-man
 NROFF_MAN2CAT.HP-UX ?=		-man
 NROFF_MAN2CAT.OSF1  ?=		-man
 
-NROFF_MAN2CAT ?=		${NROFF_MAN2CAT.${OPSYS}:U-mandoc -Tascii}
+NROFF_MAN2CAT ?= $(or ${NROFF_MAN2CAT.${OPSYS}},-mandoc -Tascii)
 
 ####################
 LD_TYPE.UnixWare =		scold
@@ -269,7 +285,7 @@ LD_TYPE.Interix  =		interixld
 LD_TYPE.OSF1     =		osf1ld
 LD_TYPE.IRIX64   =		irixld
 
-LD_TYPE  ?=			${LD_TYPE.${TARGET_OPSYS}:Ugnuld}
+LD_TYPE  ?= $(or ${LD_TYPE.${TARGET_OPSYS}},gnuld)
 
 ####################
 OBJECT_FMT ?=			ELF
@@ -279,7 +295,7 @@ LDFLAGS.shared.sunld =		-G
 LDFLAGS.soname.sunld =		-h lib${LIB}.so.${SHLIB_MAJOR}
 
 LDFLAGS.shared.darwinld =	-dylib
-LDFLAGS.soname.darwinld =	#
+LDFLAGS.soname.darwinld =
 
 LDFLAGS.shared.gnuld =		-shared
 LDFLAGS.soname.gnuld =		-soname lib${LIB}${SHLIB_EXT}.${SHLIB_MAJOR}
@@ -288,10 +304,10 @@ LDFLAGS.shared.hpld =		-b +b ${LIBDIR}
 LDFLAGS.soname.hpld =		+h lib${LIB}.sl.${SHLIB_MAJOR}
 
 LDFLAGS.shared.aixld =		-G
-LDFLAGS.soname.aixld =		#
+LDFLAGS.soname.aixld =
 
 LDFLAGS.shared.irixld =		-shared
-LDFLAGS.soname.irixld =		#
+LDFLAGS.soname.irixld =
 
 LDFLAGS.shared.osf1ld =		-shared -msym -expect_unresolved '*'
 LDFLAGS.soname.osf1ld =		-soname lib${LIB}${SHLIB_EXT}.${SHLIB_MAJOR} \
@@ -317,147 +333,153 @@ LDFLAGS.shared.decc    =	-shared
 
 LDFLAGS.soname.sunpro  =	${LDFLAGS.soname.sunld}
 
-.if ${TARGET_OPSYS:Unone} == "Darwin"
-.if ${MKDLL:U} == "no"
+ifeq (${TARGET_OPSYS},Darwin)
+ifeq (${MKDLL},no)
 LDFLAGS.shared.gcc.Darwin  =	-dynamiclib -install_name ${LIBDIR}/lib${LIB}${SHLIB_EXTFULL}
 LDFLAGS.shared.clang.Darwin  =	-dynamiclib -install_name ${LIBDIR}/lib${LIB}${SHLIB_EXTFULL}
-SHLIB_MAJORp1 !=		expr 1 + ${SHLIB_MAJOR:U0}
+SHLIB_MAJORp1 !=		expr 1 + $(if ${SHLIB_MAJOR},${SHLIB_MAJOR},0)
 LDFLAGS.soname.gcc =		-current_version ${SHLIB_MAJORp1}${SHLIB_MINOR:D.${SHLIB_MINOR}}${SHLIB_TEENY:D.${SHLIB_TEENY}}
 LDFLAGS.soname.gcc +=		-compatibility_version ${SHLIB_MAJORp1}
-.else
+else # MKDLL
 LDFLAGS.shared.gcc.Darwin =	-flat_namespace -bundle -undefined suppress
 LDFLAGS.shared.clang.Darwin =	-flat_namespace -bundle -undefined suppress
-.endif
-.elif ${TARGET_OPSYS:Unone} == "OSF1" && defined(LIB)
+endif # MKDLL
+else ifeq (${TARGET_OPSYS},OSF1)
+ifdef LIB
 CLEANFILES +=			${.OBJDIR}/${LIB}_so_locations
-.endif
+endif
+endif # TARGET_OPSYS
 
-CFLAGS.cctold   ?=		${CFLAGS.cctold.${CC_TYPE}:U-Wl,}
-CXXFLAGS.cctold ?=		${CFLAGS.cctold.${CXX_TYPE}:U-Wl,}
+CFLAGS.cctold   ?=		$(or ${CFLAGS.cctold.${CC_TYPE}} -Wl,)
+CXXFLAGS.cctold ?=		$(or ${CFLAGS.cctold.${CXX_TYPE}} -Wl,)
 
-LDFLAGS.soname.ld =		${LDFLAGS.soname.${LD_TYPE}:U}
+LDFLAGS.soname.ld =		${LDFLAGS.soname.${LD_TYPE}}
 
-.if ${LDREAL:U0} == ${LD:U0}
-LDFLAGS.shared ?=		${LDFLAGS.shared.${LD_TYPE}:U-shared}
+ifeq (${LDREAL},${LD})
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${LD_TYPE}} -shared)
 LDFLAGS.soname ?=		${LDFLAGS.soname.ld}
-.elif ${LDREAL:U0} == ${CC:U0}
-LDFLAGS.shared ?=		${LDFLAGS.shared.${CC_TYPE}.${TARGET_OPSYS}:U${LDFLAGS.shared.${CC_TYPE}:U-shared}}
-LDFLAGS.soname ?=		${LDFLAGS.soname.${CC_TYPE}:U${LDFLAGS.soname.ld:@v@${CFLAGS.cctold}${v}@}}
-.elif ${LDREAL:U0} == ${CXX:U0}
-LDFLAGS.shared ?=		${LDFLAGS.shared.${CXX_TYPE}.${TARGET_OPSYS}:U${LDFLAGS.shared.${CXX_TYPE}:U-shared}}
-LDFLAGS.soname ?=		${LDFLAGS.soname.${CXX_TYPE}:U${LDFLAGS.soname.ld:@v@${CXXFLAGS.cctold}${v}@}}
-.endif
+else ifeq (${LDREAL},${CC})
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CC_TYPE}.${TARGET_OPSYS}} \
+				    ${LDFLAGS.shared.${CC_TYPE}} \
+				    -shared)
+LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CC_TYPE}} \
+				  $(foreach v,${LDFLAGS.soname.ld},${CFLAGS.cctold}${v}))
+else ifeq (${LDREAL},${CXX})
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CXX_TYPE}.${TARGET_OPSYS}} ${LDFLAGS.shared.${CXX_TYPE}} -shared)
+LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CXX_TYPE}} \
+				  $(foreach v,${LDFLAGS.soname.ld},{CXXFLAGS.cctold}${v}))
+endif # LDREAL
 
 ####################
 LDFLAGS.pie.gcc =		-pie
 
-.if ${LDREAL:U0} == ${CC:U0}
+ifeq (${LDREAL},${CC})
 LDFLAGS.pie ?=			${LDFLAGS.pie.${CC_TYPE}}
-.elif ${LDREAL:U0} == ${CXX:U0}
+else ifeq (${LDREAL},${CXX})
 LDFLAGS.pie ?=			${LDFLAGS.pie.${CXX_TYPE}}
-.endif
+endif
 ####################
 LDFLAGS.relro.gnuld =		-zrelro -znow
 
 LDFLAGS.relro ?=		${LDFLAGS.relro.${LD_TYPE}}
 
 ####################
-.if ${LDREAL:U0} != ${LD:U0}
-.if !empty(LDFLAGS.relro)
-LDFLAGS.relro := ${LDFLAGS.relro:S/^/-Wl,/g}
-.endif
-.endif
+ifeq (${LDREAL},${LD})
+ifneq (${LDFLAGS.relro},)
+LDFLAGS.relro := $(addprefix -Wl${COMMA},${LDFLAGS.relro})
+endif
+endif
 
 ############################################################
 ############################################################
-.if ${TARGET_OPSYS:Unone} == "Darwin"
+ifeq (${TARGET_OPSYS},Darwin)
 
 COMPILE.s  ?=	${AS} ${AFLAGS}
 COMPILE.S  ?=	${CC} ${AFLAGS} ${_CPPFLAGS} -c
 
-.if ${MKDLL:U} != "no"
+ifeq (${MKDLL},no)
 
 SHLIB_EXTFULL  ?=	.bundle
 
-.else # MKDLL
+else # MKDLL
 
-.if defined(SHLIB_MAJOR) && !empty(SHLIB_MAJOR)
+ifneq (${SHLIB_MAJOR},)
 SHLIB_EXT1 ?=	.${SHLIB_MAJOR}.dylib
-.if defined(SHLIB_MINOR) && !empty(SHLIB_MINOR)
+ifneq (${SHLIB_MINOR},)
 SHLIB_EXT2 ?=	.${SHLIB_MAJOR}.${SHLIB_MINOR}.dylib
-.if defined(SHLIB_TEENY) && !empty(SHLIB_TEENY)
-SHLIB_EXT3 ?=	.${SHLIB_FULLVERSION}.dylib
+ifneq (${SHLIB_TEENY},)
 SHLIB_FULLVERSION = ${SHLIB_MAJOR}.${SHLIB_MINOR}.${SHLIB_TEENY}
-.else
+SHLIB_EXT3 ?=	.${SHLIB_FULLVERSION}.dylib
+else
 SHLIB_FULLVERSION = ${SHLIB_MAJOR}.${SHLIB_MINOR}
-.endif # SHLIB_TEENY
-.else
+endif # SHLIB_TEENY
+else
 SHLIB_FULLVERSION = ${SHLIB_MAJOR}
-.endif # SHLIB_MINOR
-.endif # SHLIB_MAJOR
+endif # SHLIB_MINOR
+endif # SHLIB_MAJOR
 
 SHLIB_EXTFULL ?=	.${SHLIB_FULLVERSION}.dylib
-.endif
+endif # MKDLL
 
-.endif # Darwin!
+endif # Darwin!
 
 ############################################################
 ############################################################
 
-.if ${SHLIB_EXT:U} == ".so" || ${SHLIB_EXT:U} == ".sl"
+ifeq ($(filter-out .so .sl,${SHLIB_EXT}),)
 
-.if defined(SHLIB_MAJOR) && !empty(SHLIB_MAJOR)
+ifneq (${SHLIB_MAJOR},)
 SHLIB_EXT1 =	${SHLIB_EXT}.${SHLIB_MAJOR}
-.if defined(SHLIB_MINOR) && !empty(SHLIB_MINOR)
+ifneq (${SHLIB_MINOR},)
 SHLIB_EXT2 =	${SHLIB_EXT}.${SHLIB_MAJOR}.${SHLIB_MINOR}
-.if defined(SHLIB_TEENY) && !empty(SHLIB_TEENY)
+ifneq (${SHLIB_TEENY},)
 SHLIB_FULLVERSION=${SHLIB_MAJOR}.${SHLIB_MINOR}.${SHLIB_TEENY}
 SHLIB_EXT3 =	${SHLIB_EXT}.${SHLIB_FULLVERSION}
-.else
+else
 SHLIB_FULLVERSION = ${SHLIB_MAJOR}.${SHLIB_MINOR}
-.endif # SHLIB_TEENY
-.else
+endif # SHLIB_TEENY
+else
 SHLIB_FULLVERSION = ${SHLIB_MAJOR}
-.endif # SHLIB_MINOR
-.endif # SHLIB_MAJOR
+endif # SHLIB_MINOR
+endif # SHLIB_MAJOR
 
 SHLIB_EXTFULL =	${SHLIB_EXT}.${SHLIB_FULLVERSION}
 
-.endif # SHLIB_EXT
+endif # SHLIB_EXT
 
 ############################################################
 ############################################################
 
-.ifdef EXPORT_SYMBOLS
-.if ${LD_TYPE} == "sunld" || ${LD_TYPE} == "gnuld"
+ifdef EXPORT_SYMBOLS
+ifeq ($(filter-out sunld gnuld,${LD_TYPE}),)
 CLEANFILES +=	${EXPORT_SYMBOLS}.tmp
 lib${LIB}${SHLIB_EXTFULL}: ${EXPORT_SYMBOLS}.tmp
 ${EXPORT_SYMBOLS}.tmp:	${EXPORT_SYMBOLS}
 	awk 'BEGIN {print "{ global:"} \
 	     {print $$0 ";"} \
 	     END {print "local: *; };"}' ${.ALLSRC} > ${.TARGET}
-.elif ${LD_TYPE} == "darwinld"
+else ifeq (${LD_TYPE},darwinld)
 CLEANFILES +=	${EXPORT_SYMBOLS}.tmp
 lib${LIB}${SHLIB_EXTFULL}: ${EXPORT_SYMBOLS}.tmp
 ${EXPORT_SYMBOLS}.tmp:	${EXPORT_SYMBOLS}
 	awk '{print "_" $$0}' ${.ALLSRC} > ${.TARGET}
-.endif # sunld or darwinld
+endif # sunld or darwinld
 
 LDFLAGS.expsym.gnuld    =	--version-script ${EXPORT_SYMBOLS}.tmp
 LDFLAGS.expsym.sunld    =	-M ${EXPORT_SYMBOLS}.tmp
 LDFLAGS.expsym.darwinld =	-exported_symbols_list ${EXPORT_SYMBOLS}.tmp
-.endif # EXPORT_SYMBOLS
+endif # EXPORT_SYMBOLS
 
-.if ${LDREAL:U0} == ${LD:U0}
-LDFLAGS.expsym ?=		${LDFLAGS.expsym.${LD_TYPE}}
-.elif defined(LDFLAGS.expsym.${LD_TYPE})
-LDFLAGS.expsym ?=		${LDFLAGS.expsym.${LD_TYPE}:S/^/-Wl,/}
-.endif # LDREAL == LD
+ifeq (${LDREAL},${LD})
+LDFLAGS.expsym ?=	${LDFLAGS.expsym.${LD_TYPE}}
+else ifdef LDFLAGS.expsym.${LD_TYPE}
+LDFLAGS.expsym ?=	$(addprefix -Wl${COMMA},${LDFLAGS.expsym.${LD_TYPE}})
+endif # LDREAL == LD
 
 ############################################################
 ############################################################
 
-.if ${EXPORT_DYNAMIC:U:tl} == "yes"
+ifeq ($(call tolower,${EXPORT_DYNAMIC}),yes)
 LDFLAGS.expdyn.gnuld     ?=	-Wl,-E
 LDFLAGS.expdyn.hpld      ?=	-Wl,-E
 LDFLAGS.expdyn.interixld ?=	-Wl,-E
@@ -465,16 +487,22 @@ LDFLAGS.expdyn.darwinld  ?=
 LDFLAGS.expdyn.irixld    ?=
 LDFLAGS.expdyn.gcc       ?=	-rdynamic
 LDFLAGS.expdyn.clang     ?=	-rdynamic
-.ifndef LDFLAGS.expdyn
-.if defined(LDFLAGS.expdyn.${LD_TYPE})
+ifndef LDFLAGS.expdyn
+
+ifdef LDFLAGS.expdyn.${LD_TYPE}
 LDFLAGS.expdyn =	${LDFLAGS.expdyn.${LD_TYPE}}
-.elif defined(LDFLAGS.expdyn.${CC_TYPE}) && ${LDREAL:U0} == ${CC:U0}
+else ifdef LDFLAGS.expdyn.${CC_TYPE}
+ifeq (${LDREAL},${CC})
 LDFLAGS.expdyn =	${LDFLAGS.expdyn.${CC_TYPE}}
-.elif defined(LDFLAGS.expdyn.${CXX_TYPE}) && ${LDREAL:U0} == ${CXX:U0}
+endif
+else ifdef LDFLAGS.expdyn.${CXX_TYPE}
+ifeq (${LDREAL},${CXX})
 LDFLAGS.expdyn =	${LDFLAGS.expdyn.${CXX_TYPE}}
-.endif # LDFLAGS.expdyn.xxx
-.endif # LDFLAGS.expdyn
-.endif # EXPORT_DYNAMIC
+endif
+endif # LDFLAGS.expdyn.xxx
+
+endif # LDFLAGS.expdyn
+endif # EXPORT_DYNAMIC
 
 ############################################################
 ############################################################
@@ -484,4 +512,4 @@ LDFLAGS.prog  =	${LDFLAGS.expdyn}
 ############################################################
 ############################################################
 
-.endif #_MKC_PLATFORM_MK
+endif #_MKC_PLATFORM_MK

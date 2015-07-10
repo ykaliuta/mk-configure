@@ -8,29 +8,38 @@
 ############################################################
 
 do_install1:	incinstall
-incinstall:	.PHONY # ensure existence
+.PHONY: incinstall
+incinstall: # ensure existence
 
-.if defined(INCS)
+ifdef INCS
 INCSSRCDIR  ?=	.
 CPPFLAGS0   +=	-I${INCSSRCDIR}
 
-.if ${MKINSTALL:tl} == "yes"
-destination_incs =	${INCS:@I@${DESTDIR}${INCSDIR}/$I@}
+ifeq ($(call tolower,${MKINSTALL}),yes)
+destination_incs = $(addprefix ${DESTDIR}${INCSDIR}/,${INCS})
 
 incinstall: ${destination_incs}
 .PRECIOUS: ${destination_incs}
 .PHONY: ${destination_incs}
 
-__incinstall: .USE
+__incinstall = \
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
-	    -o ${BINOWN:Q} \
-	    -g ${BINGRP:Q} -m ${NONBINMODE} ${.ALLSRC} ${.TARGET}
+	    -o ${BINOWN} \
+	    -g ${BINGRP} -m ${NONBINMODE} $^ $@
 
-.for I in ${INCS:O:u}
-${DESTDIR}${INCSDIR}/$I: ${"${INCSSRCDIR}" != ".":?${INCSSRCDIR}/$I:$I} __incinstall
-.endfor
+_tmp_prefix := ${DESTDIR}${INCSDIR}/
+_tmp_targets := $(addprefix ${_tmp_prefix},${INCS})
+
+ifneq (${INCSSRCDIR},.)
+_tmp_dep_prefix := ${INCSSRCDIR}/
+else
+_tmp_dep_prefix :=
+endif
+
+$(_tmp_targets): ${_tmp_prefix}%: ${_tmp_dep_prefix}%
+	${__incinstall}
 
 UNINSTALLFILES  +=	${destination_incs}
-INSTALLDIRS     +=	${destination_incs:H}
-.endif # MKINSTALL
-.endif # INCS
+INSTALLDIRS     +=	$(dir ${destination_incs})
+endif # MKINSTALL
+endif # INCS

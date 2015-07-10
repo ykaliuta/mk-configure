@@ -22,18 +22,46 @@
 		${CFLAGS_${_PN}} ${COPTS_${_PN}} -o ${.TARGET} ${.IMPSRC}
 
 # C++
-.cc.o .cpp.o .cxx.o .C.o:
+define __cc.o
 	${MESSAGE.cc}
 	${COMPILE.cc} ${CPPFLAGS_${_PN}} ${CXXFLAGS_${_PN}} \
 		${COPTS_${_PN}} -o ${.TARGET} ${.IMPSRC}
-.cc.op .C.op .cpp.op:
+endef
+
+.cc.o:
+	${__cc.o}
+.cpp.o:
+	${__cc.o}
+.cxx.o:
+	${__cc.o}
+.C.o:
+	${__cc.o}
+
+define __cc.op
 	${MESSAGE.cc}
 	${COMPILE.cc} -pg ${CPPFLAGS_${_PN}} ${CXXFLAGS_${_PN}} \
 		${COPTS_${_PN}} -o ${.TARGET} ${.IMPSRC}
-.cc.os .C.os .cpp.os:
+endef
+
+.cc.op:
+	${__cc.op}
+.C.op:
+	${__cc.op}
+.cpp.op:
+	${__cc.op}
+
+define __cc.os
 	${MESSAGE.cc}
 	${COMPILE.cc} ${CXXFLAGS.pic} ${CPPFLAGS_${_PN}} \
 		${CXXFLAGS_${_PN}} ${COPTS_${_PN}} -o ${.TARGET} ${.IMPSRC}
+endef
+
+.cc.os:
+	${__cc.os}
+.C.os:
+	${__cc.os}
+.cpp.os:
+	${__cc.os}
 
 # Fortran/Ratfor
 .f.o:
@@ -62,13 +90,22 @@
 	${COMPILE.p} -o ${.TARGET} ${.IMPSRC}
 
 # Assembly
-.S.o .s.o:
+.S.o:
 	${MESSAGE.s}
 	${COMPILE.s} -o ${.TARGET} ${.IMPSRC}
-.S.op .s.op:
+.s.o:
+	${MESSAGE.s}
+	${COMPILE.s} -o ${.TARGET} ${.IMPSRC}
+.S.op:
 	${MESSAGE.s}
 	${COMPILE.s} -o ${.TARGET} -pg ${.IMPSRC}
-.S.os .s.os:
+.s.op:
+	${MESSAGE.s}
+	${COMPILE.s} -o ${.TARGET} -pg ${.IMPSRC}
+.S.os:
+	${MESSAGE.s}
+	${COMPILE.s} ${CAFLAGS.pic} -o ${.TARGET} ${.IMPSRC}
+.s.os:
 	${MESSAGE.s}
 	${COMPILE.s} ${CAFLAGS.pic} -o ${.TARGET} ${.IMPSRC}
 
@@ -89,11 +126,12 @@
 	${LEX.l} -t ${.IMPSRC} > ${.TARGET}
 
 # Yacc
-.y.h: ${.TARGET:R}.c
+%.h: %.y %.c
+
 .y.c:
 	${MESSAGE.y}
 	${YACC.y} ${.IMPSRC}
 	${_V}mv y.tab.c ${.TARGET}
-.ifdef YHEADER
-	${_V}mv y.tab.h ${.TARGET:R}.h
-.endif
+ifdef YHEADER
+	${_V}mv y.tab.h $(basename ${.TARGET}).h
+endif

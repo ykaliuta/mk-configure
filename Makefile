@@ -3,6 +3,7 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.MAIN: all
+.DEFAULT_GOAL := all
+
 .DEFAULT:
-	@unset ROOT_GROUP; ${MAKE} ${MAKEFLAGS} -m ${.CURDIR}/mk -m ${.CURDIR}/features -f main.mk ${.TARGET}
+	@unset ROOT_GROUP; ${MAKE} ${MAKEFLAGS} -I ${CURDIR}/mk -I ${CURDIR}/features -f main.mk ${MAKECMDGOALS}

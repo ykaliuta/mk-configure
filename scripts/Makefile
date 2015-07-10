@@ -18,4 +18,4 @@ SYMLINKS   =	mkc.subprj.mk ${MKFILESDIR}/mkc.subprjs.mk
 SYMLINKS  +=	mkc_imp.pkg-config.mk ${MKFILESDIR}/mkc.pkg-config.mk
 SYMLINKS  +=	mkc_imp.intexts.mk ${MKFILESDIR}/mkc.intexts.mk
 
-.include <mkc.mk>
+include mkc.mk

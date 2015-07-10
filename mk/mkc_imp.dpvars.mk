@@ -3,25 +3,22 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.for i in ${DPLDADD}
-.  if ( ${MKPIE:U:tl} == "yes" || defined(SHLIB_MAJOR) ) && !empty(STATICLIBS:Mlib${i})
-LDADD0    +=	-l${i}_pic
-.  else
-LDADD0    +=	-l${i}
-.  endif
-.endfor
+define gen_pic
+$(if $(and $(or $(call seq,yes,$(call tolower,${MKPIE})),$(call is_defined,SHLIB_MAJOR)),$(filter lib${1},${STATICLIBS})),_pic,)
+endef
 
-.for i in ${DPLIBDIRS}
-.  if ${TARGET_OPSYS} == "HP-UX"
+$(foreach i,${DPLDADD},$(eval \
+LDADD0 += -l${i}$(call gen_pic,${i}) \
+))
+
+ifeq (${TARGET_OPSYS},HP-UX)
 LDFLAGS0  +=	${CFLAGS.cctold}+b ${CFLAGS.cctold}${LIBDIR}
-.  endif
-LDFLAGS0  +=	-L${i}
-.endfor
+else
+$(eval LDFLAGS0  += ${DPLIBDIRS})
+endif
 
-.for i in ${DPINCDIRS:O:u}
-CPPFLAGS0 +=	-I${i}
-.endfor
+$(eval CPPFLAGS0 += $(addprefix -I,$(sort ${DPINCDIRS})))
 
-.undef DPLIBDIRS
-.undef DPINCDIRS
-.undef DPLDADD
+undefine DPLIBDIRS
+undefine DPINCDIRS
+undefine DPLDADD

@@ -7,40 +7,57 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-.if !defined(_BSD_FILES_MK)
+ifndef _BSD_FILES_MK
 _BSD_FILES_MK := 1
 
-filesinstall: .PHONY # ensure existence
+.PHONY: filesinstall
+filesinstall: # ensure existence
 
-.include <mkc.init.mk>
+include mkc.init.mk
 
-do_install1:	.PHONY filesinstall
+do_install1: filesinstall
 
-.if defined(FILES) && !empty(FILES)
+ifneq (${FILES},)
 
 realdo_all: ${FILES}
 
-.if ${MKINSTALL:tl} == "yes"
-destination_files = ${FILES:@F@${DESTDIR}${FILESDIR_${F}:U${FILESDIR}}/${FILESNAME_${F}:U${FILESNAME:U${F:T}}}@}
+ifeq ($(call tolower,${MKINSTALL}),yes)
+
+define gen_destfile
+    ${DESTDIR}$(firstword \
+    ${FILESDIR_${1}} ${FILESDIR})/$(firstword \
+    ${FILESNAME_${1}} ${FILESNAME} $(notdir ${1}))
+endef
+
+destination_files = $(foreach F,${FILES},$(call gen_destfile,${F}))
 
 filesinstall: ${destination_files}
 .PRECIOUS: ${destination_files}
 .PHONY: ${destination_files}
 
-__fileinstall: .USE
+#__fileinstall: .USE
+#	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
+#	    -o ${FILESOWN_${.ALLSRC:T}:U${FILESOWN}:Q} \
+#	    -g ${FILESGRP_${.ALLSRC:T}:U${FILESGRP}:Q} \
+#	    -m ${FILESMODE_${.ALLSRC:T}:U${FILESMODE}} \
+
+__fileinstall = \
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
-	    -o ${FILESOWN_${.ALLSRC:T}:U${FILESOWN}:Q} \
-	    -g ${FILESGRP_${.ALLSRC:T}:U${FILESGRP}:Q} \
-	    -m ${FILESMODE_${.ALLSRC:T}:U${FILESMODE}} \
+	    -o $(call gen_install_switch,FILESOWN) \
+	    -g $(call gen_install_switch,FILESGRP) \
+	    -m $(call gen_install_switch,FILESMODE) \
 	    ${.ALLSRC} ${.TARGET}
 
-.for F in ${FILES:O:u}
-${DESTDIR}${FILESDIR_${F}:U${FILESDIR}}/${FILESNAME_${F}:U${FILESNAME:U${F:T}}}: ${F} __fileinstall
-.endfor
+
+define gen_install_rule
+$(call gen_destfile,${F}): ${F}
+	$(__fileinstall)
+endef
+$(foreach F,$(sort ${FILES}),$(eval $(value gen_install_rule)))
 
 UNINSTALLFILES  +=	${destination_files}
-INSTALLDIRS     +=	${destination_files:H}
-.endif # MKINSTALL
-.endif # FILES
+INSTALLDIRS     +=	$(filter-out ./,$(dir ${destination_files}))
+endif # MKINSTALL
+endif # FILES
 
-.endif # _BSD_FILES_MK
+endif # _BSD_FILES_MK
