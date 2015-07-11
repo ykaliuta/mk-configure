@@ -197,17 +197,19 @@ else
 __check_decl_arg = ${one}${n}
 endif
 
-SUFFIX := $(call make_suffix,${i})
-ifndef HAVE_${ONE}${n}.${SUFFIX}
-HAVE_${ONE}${n}.${SUFFIX} := $(shell \
+suffix := $(call make_suffix,${i})
+SUFFIX := $(call toupper,${suffix})
+ifndef HAVE_${ONE}${n}.${suffix}
+HAVE_${ONE}${n}.${suffix} := $(shell \
 	env ${mkc.environ} mkc_check_decl ${__check_decl_arg} $(subst :, ,${i}))
-ifneq (${HAVE_${ONE}${n}.${SUFFIX}},)
+endif
+
+ifneq (${HAVE_${ONE}${n}.${suffix}},0)
 ifeq ($(filter ${i},${MKC_REQUIRE_${ONE}S${n}}),)
-SUFFIX := $(call make_suffix,$(call toupper,${i}))
 $(eval MKC_CFLAGS += -DHAVE_${ONE}${n}_${SUFFIX}=1)
 endif
 endif
-endif
+
 endef
 
 define check_require_one
@@ -232,7 +234,7 @@ endef
 
 # for defines, types, vars, funcs
 define make_suffix
-$(subst /,_,$(subst :,.,$(subst .,_,${1})))
+$(subst /,_,$(subst .,_,$(subst :,_,${1})))
 endef
 
 n :=
