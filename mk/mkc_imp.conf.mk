@@ -114,7 +114,7 @@ undefine MKC_REQUIRE_HEADERS
 define check_funclibs_loop
 
 $(eval HAVE_FUNCLIB.$(subst :,.,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(subst :, ,${f})))
-$(eval HAVE_FUNCLIB.$(call sed,s/:.*//,{f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,{f})))
+$(eval HAVE_FUNCLIB.$(call sed,s/:.*//,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,${f})))
 
 ifneq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})},${HAVE_FUNCLIB.$(subst :,.,${f})})
 ifneq ($(filter $(subst :,.,${f}),${MKC_NOAUTO_FUNCLIBS}),)
@@ -193,12 +193,18 @@ undefine MKC_CHECK_SIZEOF
 # make_suffix function below, defined separately for different contexts
 
 define check_have_one
+ifeq (${ONE},VAR)
+__check_decl_arg := variable
+else
+__check_decl_arg = ${one}${n}
+endif
+
 SUFFIX := $(call make_suffix,${i})
 ifndef HAVE_${ONE}${n}.${SUFFIX}
 HAVE_${ONE}${n}.${SUFFIX} := $(shell \
-	env ${mkc.environ} mkc_check_decl ${one}${n} $(subst :, ,${i}))
+	env ${mkc.environ} mkc_check_decl ${__check_decl_arg} $(subst :, ,${i}))
 ifneq (${HAVE_${ONE}${n}.${SUFFIX}},)
-ifeq ($(call filter-glob,${i},${MKC_REQUIRE_${ONE}S${n}}),)
+ifeq ($(filter ${i},${MKC_REQUIRE_${ONE}S${n}}),)
 SUFFIX := $(call make_suffix,$(call toupper,${i}))
 $(eval MKC_CFLAGS += -DHAVE_${ONE}${n}_${SUFFIX}=1)
 endif

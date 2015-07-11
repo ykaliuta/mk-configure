@@ -120,7 +120,8 @@ include mkc.configure.mk
 HAVE_MEMBER.struct_sockaddr_in_sin_addr_s_addr.netinet_in_h  ?=  \
    ${HAVE_MEMBER.struct_sockaddr_in_sin_addr_s_addr.arpa_inet_h.netinet_in_h}
 
-ifneq ($(filter 1,$(or ${HAVE_FUNCLIB.sqrt},${HAVE_FUNCLIB.sqrt.m})),)
+ifneq ($(or $(filter-out 0,${HAVE_FUNCLIB.sqrt}),\
+	$(filter-out 0,${HAVE_FUNCLIB.sqrt.m})),)
 HAVE_FUNCLIB.sqrt=	ok
 endif
 
