@@ -382,9 +382,9 @@ HAVE_PROTOTYPE.${p} != env ${mkc.environ} mkc_check_decl prototype \
 	${MKC_PROTOTYPE_HEADERS.${p}}
 endif
 
-ifeq (HAVE_PROTOTYPE.${p},1)
-MKC_CFLAGS  +=	-DHAVE_PROTOTYPE_$(call toupper,${p})=1
-else ifneq ($(call filter-glob,${p},${MKC_REQUIRE_PROTOTYPES}),)
+ifneq (${HAVE_PROTOTYPE.${p}},0)
+$(eval MKC_CFLAGS  +=	-DHAVE_PROTOTYPE_$(call toupper,${p})=1)
+else ifneq ($(filter ${p},${MKC_REQUIRE_PROTOTYPES}),)
 _fake       !=	env ${mkc.environ} mkc_check_decl -d prototype \
 	            $(call shell-quote,${MKC_PROTOTYPE_FUNC.${p}}) \
 		    ${MKC_PROTOTYPE_HEADERS.${p}}; echo
