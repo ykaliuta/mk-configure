@@ -16,6 +16,7 @@ COMMA	:= ,
 .ALLSRC = $^
 .IMPSRC = $<
 
+MAKEFLAGS += --no-print-directory
 
 define tolower
 $(shell echo $(1) | tr [:upper:] [:lower:])

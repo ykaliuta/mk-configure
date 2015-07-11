@@ -113,11 +113,11 @@ undefine MKC_REQUIRE_HEADERS
 
 define check_funclibs_loop
 
-HAVE_FUNCLIB.$(subst :,.,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(subst :, ,${f}))
-HAVE_FUNCLIB.$(call sed,s/:.*//,{f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,{f}))
+$(eval HAVE_FUNCLIB.$(subst :,.,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(subst :, ,${f})))
+$(eval HAVE_FUNCLIB.$(call sed,s/:.*//,{f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,{f})))
 
 ifneq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})},${HAVE_FUNCLIB.$(subst :,.,${f})})
-ifneq ($(call filter-glob,$(subst :,.,${f}),${MKC_NOAUTO_FUNCLIBS}),)
+ifneq ($(filter $(subst :,.,${f}),${MKC_NOAUTO_FUNCLIBS}),)
 ifeq ($(filter 1,${MKC_NOAUTO_FUNCLIBS}),)
 ifneq ($(filter 1,${HAVE_FUNCLIB.$(subst :,.,${f})}),)
 ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
@@ -170,15 +170,16 @@ undefine MKC_REQUIRE_FUNCLIBS
 # checking for sizeof(xxx)
 
 define check_sizeof
-SIZEOF_SUFFIX := $(subst :,.,$(subst /,_,$(subst *,P,\
-		 $(subst -,_,$(subst .,_,${t})))))
-SIZEOF.${SIZEOF_SUFFIX} ?= $(shell \
-	env ${mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
-ifneq (${SIZEOF.${SIZEOF_SUFFIX}},failed)
-DSIZEOF_SUFFIX := $(call toupper,\
-			$(subst .,_,$(subst :,_,$(subst *,P,\
-			$(subst $(SPACE),_,$(subst -,_,${t}))))))
-$(eval MKC_CFLAGS += -DSIZEOF_${DSIZEOF_SUFFIX}=${SIZEOF.${SIZEOF_SUFFIX}})
+SIZEOF_SUFFIX := $(subst :,.,$(subst /,_,$(subst *,P,$(subst -,_,$(subst .,_,${t})))))
+
+__varname := SIZEOF.${SIZEOF_SUFFIX})
+ifndef ${__varname}
+${__varname} := $(shell env ${mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
+endif
+
+ifneq (${${__varname}},failed)
+DSIZEOF_SUFFIX := $(call toupper,$(subst .,_,$(subst :,_,$(subst *,P,$(subst $(SPACE),_,$(subst -,_,${t}))))))
+$(eval MKC_CFLAGS += -DSIZEOF_${DSIZEOF_SUFFIX}=${${__varname}})
 endif
 endef
 
