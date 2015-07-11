@@ -117,10 +117,10 @@ $(eval HAVE_FUNCLIB.$(subst :,.,${f}) ?= $(shell env ${mkc.environ} mkc_check_fu
 $(eval HAVE_FUNCLIB.$(call sed,s/:.*//,${f}) ?= $(shell env ${mkc.environ} mkc_check_funclib $(call sed,s/:.*//,${f})))
 
 ifneq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})},${HAVE_FUNCLIB.$(subst :,.,${f})})
-ifneq ($(filter $(subst :,.,${f}),${MKC_NOAUTO_FUNCLIBS}),)
-ifeq ($(filter 1,${MKC_NOAUTO_FUNCLIBS}),)
-ifneq ($(filter 1,${HAVE_FUNCLIB.$(subst :,.,${f})}),)
-ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
+ifeq ($(filter $(subst :,.,${f}),$(subst :,.,${MKC_NOAUTO_FUNCLIBS})),)
+ifeq (${MKC_NOAUTO_FUNCLIBS},)
+ifneq (${HAVE_FUNCLIB.$(subst :,.,${f})},0)
+ifeq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),0)
 
 MKC_LDADD +=	-l$(call sed,s/^.*://,{f})
 
@@ -130,17 +130,14 @@ endif
 endif
 endif
 
-ifeq ($(filter 1,${HAVE_FUNCLIB.$(subst :,.,${f})}),)
-ifeq ($(filter 1,${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})}),)
-ifneq ($(call filter-glob,$(call sed,s/:.*//,${f},${_MKC_SOURCE_FUNCS})),)
+ifeq (${HAVE_FUNCLIB.$(subst :,.,${f})},0)
+ifeq (${HAVE_FUNCLIB.$(call sed,s/:.*//,${f})},0)
+ifneq ($(filter $(call sed,s/:.*//,${f}),${_MKC_SOURCE_FUNCS}),)
 
 _varsuffix := $(call sed,s/:.*//,${f}).c
-_varname := ${MKC_SOURCE_DIR.${_varsuffix}}
-ifdef ${_varname}
-MKC_SRCS += ${${_varname}}
-else
-MKC_SRCS += ${MKC_SOURCE_DIR}/${_varsuffix}
-endif
+_varname := MKC_SOURCE_DIR.${_varsuffix}
+
+$(eval MKC_SRCS += $(or ${${_varname}},${MKC_SOURCE_DIR}/${_varsuffix}))
 
 endif
 endif
