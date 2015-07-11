@@ -133,7 +133,7 @@ define __do_var
 endef
 
 all:
-	$(foreach i,$(firstword ${vars}),${__do_var})
+	$(foreach i,${vars},${__do_var})
 	@echo ''
 	@printf "%s\n" "${CPPFLAGS}" | \
 		sed "s/^.*-DSYSTEM_.*$$/KNOWN_SYSTEM/"

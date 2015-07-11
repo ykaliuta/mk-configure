@@ -172,7 +172,7 @@ undefine MKC_REQUIRE_FUNCLIBS
 define check_sizeof
 SIZEOF_SUFFIX := $(subst :,.,$(subst /,_,$(subst *,P,$(subst -,_,$(subst .,_,${t})))))
 
-__varname := SIZEOF.${SIZEOF_SUFFIX})
+__varname := SIZEOF.${SIZEOF_SUFFIX}
 ifndef ${__varname}
 ${__varname} := $(shell env ${mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
 endif
