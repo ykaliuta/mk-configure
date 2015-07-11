@@ -241,18 +241,24 @@ n :=
 ONES_TO_CHECK := define type var
 $(foreach one,${ONES_TO_CHECK},$(eval $(value loop_one)))
 
-#for funcs
-one := func
-$(foreach n,0 1 2 3 4 5 6 7 8 9,$(eval $(value loop_one)))
-
 #for members
 define make_suffix
-$(subst -,_,$(subst /,_,$(subst :,.,$(subst .,_,${1}))))
+$(subst -,_,$(subst /,_,$(subst .,_,$(subst :,_,${1}))))
 endef
 
 #no sense for foreach
 one := member
 $(eval $(value loop_one))
+
+# again (order matters) for defines, types, vars, funcs
+define make_suffix
+$(subst /,_,$(subst .,_,$(subst :,_,${1})))
+endef
+
+#for funcs
+one := func
+$(foreach n,0 1 2 3 4 5 6 7 8 9,$(eval $(value loop_one)))
+
 
 
 ######################################################
@@ -275,7 +281,7 @@ endif #ifndef CUSTOM.${c}
 ifneq (${CUSTOM.${c}},)
 ifneq (${CUSTOM.${c}},0)
 ifeq ($(filter ${c},${MKC_REQUIRE_CUSTOM}),)
-MKC_CFLAGS  +=		-DCUSTOM_$(call toupper,${c})=${CUSTOM.${c}}
+$(eval MKC_CFLAGS  +=		-DCUSTOM_$(call toupper,${c})=${CUSTOM.${c}})
 endif
 endif
 endif
