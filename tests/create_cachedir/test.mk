@@ -1,13 +1,13 @@
 TEST_MKC_CACHEDIR  =	${.CURDIR}/.cache
-CLEANFILES   +=		${.OBJDIR}/${.CURDIR:T}.test.out ${TEST_MKC_CACHEDIR}
+CLEANFILES   +=		${.OBJDIR}/$(notdir ${CURDIR}).test.out ${TEST_MKC_CACHEDIR}
 CLEANDIRS    +=		${TEST_MKC_CACHEDIR}
 
 .PHONY : test_output
 test_output:
 	@echo 'Testing ${.CURDIR}... ' 1>&2; \
-	tmp_out=${.OBJDIR}/${.CURDIR:T}.test.out; \
+	tmp_out=${.OBJDIR}/$(notdir ${CURDIR}).test.out; \
 	rm -rf $$tmp_out ${TEST_MKC_CACHEDIR}; \
-	${MAKE} ${MAKEFLAGS} errorcheck MKC_CACHEDIR=${TEST_MKC_CACHEDIR} 2>&1 | \
+	${MAKE} errorcheck MKC_CACHEDIR=${TEST_MKC_CACHEDIR} 2>&1 | \
 	grep 'checking.*header' ;\
 	if test -f ${TEST_MKC_CACHEDIR}/_mkc_header_string_h.c; then \
 	   echo cache file exists; \
@@ -15,8 +15,8 @@ test_output:
 	   echo cache file does not exist; \
 	fi \
 	; \
-	${MAKE} ${MAKEFLAGS} cleandir 2>/dev/null 1>&2
+	${MAKE}  cleandir 2>/dev/null 1>&2
 
 #	rm -rf $$MKC_CACHEDIR; \
 
-.include <mkc.minitest.mk>
+include mkc.minitest.mk
