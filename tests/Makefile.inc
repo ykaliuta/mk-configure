@@ -1,1 +1,1 @@
-.include "../examples/Makefile.inc"
+include ../examples/Makefile.inc

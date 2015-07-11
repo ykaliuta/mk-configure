@@ -115,26 +115,29 @@ vars+=	HAVE_HEADER.sys_time_h HAVE_HEADER.string_h \
 	\
 	MKC_AUTO_CFLAGS MKC_AUTO_SRCS MKC_AUTO_LDADD
 
-.include <mkc.configure.mk>
+include mkc.configure.mk
 
 HAVE_MEMBER.struct_sockaddr_in_sin_addr_s_addr.netinet_in_h  ?=  \
    ${HAVE_MEMBER.struct_sockaddr_in_sin_addr_s_addr.arpa_inet_h.netinet_in_h}
 
-.if HAVE_FUNCLIB.sqrt || HAVE_FUNCLIB.sqrt.m
+ifneq ($(filter 1,$(or ${HAVE_FUNCLIB.sqrt},${HAVE_FUNCLIB.sqrt.m})),)
 HAVE_FUNCLIB.sqrt=	ok
-.endif
+endif
+
+define __do_var
+	echo ${i}=${${i}} | \
+	sed -e 's|\\([^ ]*SIZEOF[^ =]*\\)=[0-9][0-9]*|\\1=n|g' \
+	    -e 's|\\([^ ]*PROG[^ =]*\\)=[^ =]*bin/|\\1=/somewhere/bin/|g' \
+	    -e '/^MKC_AUTO_SRCS=/ s|/[^ ]*/||g'
+
+endef
 
 all:
-.for i in ${vars}
-	@echo ${i}=${${i}} | \
-	sed -e 's|\([^ ]*SIZEOF[^ =]*\)=[0-9][0-9]*|\1=n|g' \
-	    -e 's|\([^ ]*PROG[^ =]*\)=[^ =]*bin/|\1=/somewhere/bin/|g' \
-	    -e '/^MKC_AUTO_SRCS=/ s|/[^ ]*/||g'
-.endfor
+	$(foreach i,$(firstword ${vars}),${__do_var})
 	@echo ''
 	@printf "%s\n" "${CPPFLAGS}" | \
 		sed "s/^.*-DSYSTEM_.*$$/KNOWN_SYSTEM/"
 	@printf "%s\n" "${CPPFLAGS}" | \
 		sed 's/^.*\(MKC_COMMON_DEFINES_WORKS_FINE\).*$$/\1/'
 
-.include <mkc.mk>
+include mkc.mk
