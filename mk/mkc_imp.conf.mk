@@ -198,7 +198,7 @@ __check_decl_arg = ${one}${n}
 endif
 
 suffix := $(call make_suffix,${i})
-SUFFIX := $(call toupper,${suffix})
+SUFFIX := $(call make_SUFFIX,${i})
 ifndef HAVE_${ONE}${n}.${suffix}
 HAVE_${ONE}${n}.${suffix} := $(shell \
 	env ${mkc.environ} mkc_check_decl ${__check_decl_arg} $(subst :, ,${i}))
@@ -213,8 +213,8 @@ endif
 endef
 
 define check_require_one
-SUFFIX := $(call make_suffix,${i})
-ifeq (${HAVE_${ONE}${n}.${SUFFIX}},)
+suffix := $(call make_suffix,${i})
+ifeq (${HAVE_${ONE}${n}.${suffix}},)
 _fake != env ${mkc.environ} mkc_check_decl -d ${one}${n} $(subst :, ,${i}) && echo
 MKC_ERR_MSG +=	"ERROR: cannot find declaration of ${one} ${i}"
 endif
@@ -233,33 +233,29 @@ undefine MKC_REQUIRE_${ONE}S${n}
 endef
 
 # for defines, types, vars, funcs
-define make_suffix
-$(subst /,_,$(subst .,_,$(subst :,_,${1})))
-endef
+make_suffix_common = $(subst /,_,$(subst :,.,$(subst .,_,${1})))
+make_SUFFIX_common = $(call toupper,$(subst /,_,$(subst .,_,$(subst :,_,${1}))))
 
+make_suffix = ${make_suffix_common}
+make_SUFFIX = ${make_SUFFIX_common}
 n :=
 ONES_TO_CHECK := define type var
 $(foreach one,${ONES_TO_CHECK},$(eval $(value loop_one)))
 
 #for members
-define make_suffix
-$(subst -,_,$(subst /,_,$(subst .,_,$(subst :,_,${1}))))
-endef
-
+make_suffix = $(subst -,_,${make_suffix_common})
+make_SUFFIX = $(subst -,_,${make_SUFFIX_common})
 #no sense for foreach
 one := member
 $(eval $(value loop_one))
 
 # again (order matters) for defines, types, vars, funcs
-define make_suffix
-$(subst /,_,$(subst .,_,$(subst :,_,${1})))
-endef
+make_suffix = ${make_suffix_common}
+make_SUFFIX = ${make_SUFFIX_common}
 
 #for funcs
 one := func
 $(foreach n,0 1 2 3 4 5 6 7 8 9,$(eval $(value loop_one)))
-
-
 
 ######################################################
 # custom checks
