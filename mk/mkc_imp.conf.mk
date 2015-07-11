@@ -91,9 +91,10 @@ SUFFIX := $(call toupper,${suffix})
 ifndef HAVE_HEADER.${suffix}
 HAVE_HEADER.${suffix} := $(shell env ${mkc.environ} mkc_check_header ${h})
 endif
-ifeq (${HAVE_HEADER.${suffix}},1)
+
+ifneq (${HAVE_HEADER.${suffix}},0)
 ifeq ($(filter ${h},${MKC_REQUIRE_HEADERS}),)
-$(eval MKC_CFLAGS  +=	-DHAVE_HEADER_${SUFFIX}=${HAVE_HEADER.${SUFFIX}})
+$(eval MKC_CFLAGS  +=	-DHAVE_HEADER_${SUFFIX}=${HAVE_HEADER.${suffix}})
 endif
 #!empty(MKC_REQUIRE_HEADERS:U:M${h})
 else ifneq ($(filter ${h},${MKC_REQUIRE_HEADERS}),)
