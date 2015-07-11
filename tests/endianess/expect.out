@@ -1,3 +1,3 @@
 =========== all ============
-warning: "endianess test deprecated; use endianness instead"
+mkc_imp.conf.mk:295: endianess test deprecated; use endianness instead
 BUILTIN.endianess=big
