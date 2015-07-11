@@ -3,9 +3,11 @@
 # See LICENSE file in the distribution.
 ############################################################
 
+include mkc.gmake.mk
+
 TEST_PREREQS ?= all
 
-_tmp_out:=${.OBJDIR}/${.CURDIR:T}.test.out
+_tmp_out:=${.OBJDIR}/$(notdir ${.CURDIR})c.test.out
 
 .PHONY : test
 test: ${TEST_PREREQS}

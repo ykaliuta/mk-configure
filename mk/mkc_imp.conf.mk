@@ -86,14 +86,19 @@ $(foreach i,${MKC_CHECK_BUILTINS} ${MKC_REQUIRE_BUILTINS},\
 # checking for headers
 
 define check_headers_loop
-HAVE_HEADER.$(subst /,_,$(subst .,_,${h})) ?= $(shell env ${mkc.environ} mkc_check_header ${h})
-ifneq (${HAVE_HEADER.$(subst /,_,$(subst .,_,${h}))},)
-ifeq ($(call filter-glob,${h},${MKC_REQUIRE_HEADERS}),)
-$(eval MKC_CFLAGS  +=	-DHAVE_HEADER_$(subst /,_,$(subst .,_,$(call toupper,${h})))=${HAVE_HEADER.$(subst /,_,$(subst .,_,$(call toupper,${h})))})
+suffix := $(subst /,_,$(subst .,_,${h}))
+SUFFIX := $(call toupper,${suffix})
+ifndef HAVE_HEADER.${suffix}
+HAVE_HEADER.${suffix} := $(shell env ${mkc.environ} mkc_check_header ${h})
 endif
-else #!empty(MKC_REQUIRE_HEADERS:U:M${h})
+ifeq (${HAVE_HEADER.${suffix}},1)
+ifeq ($(filter ${h},${MKC_REQUIRE_HEADERS}),)
+$(eval MKC_CFLAGS  +=	-DHAVE_HEADER_${SUFFIX}=${HAVE_HEADER.${SUFFIX}})
+endif
+#!empty(MKC_REQUIRE_HEADERS:U:M${h})
+else ifneq ($(filter ${h},${MKC_REQUIRE_HEADERS}),)
 _fake   !=   env ${mkc.environ} mkc_check_header -d ${h} && echo
-MKC_ERR_MSG +=	"ERROR: cannot find header ${h}"
+$(eval MKC_ERR_MSG +=	"ERROR: cannot find header ${h}")
 endif
 endef
 
@@ -189,7 +194,7 @@ undefine MKC_CHECK_SIZEOF
 define check_have_one
 SUFFIX := $(call make_suffix,${i})
 ifndef HAVE_${ONE}${n}.${SUFFIX}
-HAVE_${ONE}${n}.${SUFFIX} ?= $(shell \
+HAVE_${ONE}${n}.${SUFFIX} := $(shell \
 	env ${mkc.environ} mkc_check_decl ${one}${n} $(subst :, ,${i}))
 ifneq (${HAVE_${ONE}${n}.${SUFFIX}},)
 ifeq ($(call filter-glob,${i},${MKC_REQUIRE_${ONE}S${n}}),)
