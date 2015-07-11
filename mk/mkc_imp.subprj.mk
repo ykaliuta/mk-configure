@@ -152,9 +152,9 @@ endef
 
 .PHONY: print_deps
 print_deps:
-	$(foreach i,$(subst :, ,${_ALLTARGDEPS} ${_ALLTARGDEPS2}\
-				${_ALLTARGDEPS3} ${TARGETS}),\
-		$(call __echo,${i}))
+	$(foreach i,${_ALLTARGDEPS} ${_ALLTARGDEPS2} ${_ALLTARGDEPS3} \
+		    ${TARGETS},\
+		$(call __echo,$(subst :, ,${i})))
 
 define __clear_target
 endef

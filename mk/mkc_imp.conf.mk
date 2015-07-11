@@ -89,7 +89,7 @@ define check_headers_loop
 HAVE_HEADER.$(subst /,_,$(subst .,_,${h})) ?= $(shell env ${mkc.environ} mkc_check_header ${h})
 ifneq (${HAVE_HEADER.$(subst /,_,$(subst .,_,${h}))},)
 ifeq ($(call filter-glob,${h},${MKC_REQUIRE_HEADERS}),)
-MKC_CFLAGS  +=	-DHAVE_HEADER_$(subst /,_,$(subst .,_,$(call toupper,${h})))=${HAVE_HEADER.$(subst /,_,$(subst .,_,$(call toupper,${h})))}
+$(eval MKC_CFLAGS  +=	-DHAVE_HEADER_$(subst /,_,$(subst .,_,$(call toupper,${h})))=${HAVE_HEADER.$(subst /,_,$(subst .,_,$(call toupper,${h})))})
 endif
 else #!empty(MKC_REQUIRE_HEADERS:U:M${h})
 _fake   !=   env ${mkc.environ} mkc_check_header -d ${h} && echo
@@ -168,12 +168,12 @@ define check_sizeof
 SIZEOF_SUFFIX := $(subst :,.,$(subst /,_,$(subst *,P,\
 		 $(subst -,_,$(subst .,_,${t})))))
 SIZEOF.${SIZEOF_SUFFIX} ?= $(shell \
-	env {mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
+	env ${mkc.environ} mkc_check_sizeof $(subst :, ,${t}))
 ifneq (${SIZEOF.${SIZEOF_SUFFIX}},failed)
 DSIZEOF_SUFFIX := $(call toupper,\
 			$(subst .,_,$(subst :,_,$(subst *,P,\
 			$(subst $(SPACE),_,$(subst -,_,${t}))))))
-MKC_CFLAGS += -DSIZEOF_${DSIZEOF_SUFFIX}=${SIZEOF.${SIZEOF_SUFFIX}}
+$(eval MKC_CFLAGS += -DSIZEOF_${DSIZEOF_SUFFIX}=${SIZEOF.${SIZEOF_SUFFIX}})
 endif
 endef
 
@@ -194,7 +194,7 @@ HAVE_${ONE}${n}.${SUFFIX} ?= $(shell \
 ifneq (${HAVE_${ONE}${n}.${SUFFIX}},)
 ifeq ($(call filter-glob,${i},${MKC_REQUIRE_${ONE}S${n}}),)
 SUFFIX := $(call make_suffix,$(call toupper,${i}))
-MKC_CFLAGS += -DHAVE_${ONE}${n}_${SUFFIX}=1
+$(eval MKC_CFLAGS += -DHAVE_${ONE}${n}_${SUFFIX}=1)
 endif
 endif
 endif
