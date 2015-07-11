@@ -126,8 +126,8 @@ endif
 
 define __do_var
 	@echo ${i}=${${i}} | \
-	sed -e 's|\\([^ ]*SIZEOF[^ =]*\\)=[0-9][0-9]*|\\1=n|g' \
-	    -e 's|\\([^ ]*PROG[^ =]*\\)=[^ =]*bin/|\\1=/somewhere/bin/|g' \
+	sed -e 's|\([^ ]*SIZEOF[^ =]*\)=[0-9][0-9]*|\1=n|g' \
+	    -e 's|\([^ ]*PROG[^ =]*\)=[^ =]*bin/|\1=/somewhere/bin/|g' \
 	    -e '/^MKC_AUTO_SRCS=/ s|/[^ ]*/||g'
 
 endef

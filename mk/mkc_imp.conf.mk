@@ -307,15 +307,17 @@ prog_id := $(subst /,_,${p})
 endif
 
 ifdef PROG.${prog_id}
-else ifneq ($(call filter-glob,/*,${p}),)
+else ifneq ($(filter /%,${p}),)
 PROG.${prog_id} := ${p}
 else
 PROG.${prog_id} != env ${mkc.environ} mkc_check_prog -i '${prog_id}' '${p}'
 endif
 
 ifndef HAVE_PROG.${prog_id}
-ifneq (${PROG.${prog_id}},)
-HAVE_PROG.${prog_id} := $(if $(shell which ${PROG.${prog_id}}),1,0)
+ifneq ($(and $(strip ${PROG.${prog_id}}),$(shell which ${PROG.${prog_id}} 2>/dev/null)),)
+HAVE_PROG.${prog_id} := 1
+else
+HAVE_PROG.${prog_id} := 0
 endif
 endif
 
