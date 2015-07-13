@@ -42,7 +42,11 @@ _CONFIGURE_ENV = CC=${CC} CFLAGS=${CFLAGS} \
    CPPFLAGS=${_CPPFLAGS} \
    LDFLAGS=${LDFLAGS} LIBS=${LDADD} CPP=${CPP} ${AT_CONFIGURE_ENV}
 
-_AT_MAKE_ENV = ${DESTDIR:DDESTDIR=${DESTDIR}} ${AT_MAKE_ENV}
+_AT_MAKE_ENV = ${AT_MAKE_ENV}
+
+ifdef DESTDIR
+_AT_MAKE_ENV += DESTDIR=${DESTDIR}
+endif
 
 realdo_mkgen:
 	${MESSAGE.mkgen}
@@ -66,7 +70,7 @@ $(addprefix at_do_,${_tmp_targets}): at_do_%:
 	cd ${_FOBJDIR}; \
 	if test -f Makefile; then \
 	    env ${_AT_MAKE_ENV} ${AT_MAKE} ${AT_MAKEFLAGS} \
-		$(subst cleandir,distclean,$*); \
+		$(patsubst %cleandir,%distclean,$*); \
 	fi
 
 DISTCLEANDIRS  +=	${_FSRCDIR}/autom4te.cache
