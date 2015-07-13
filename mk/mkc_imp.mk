@@ -132,10 +132,10 @@ print_values2 :
 check_mkc_err_msg:
 	@if test -n '${MKC_ERR_MSG}'; then \
 	    for msg in '' ${MKC_ERR_MSG}; do \
-		fn=`printf '%s\\n' "$$msg" | sed -n 's/^%%%: //p'`; \
+		fn=`printf '%s\n' "$$msg" | sed -n 's/^%%%: //p'`; \
 		if test -n "$$fn"; then \
 		    awk '{print "ERROR: " $$0}' "$$fn"; ex=1; \
-		elif test -n "$$msg"; then printf '%s\\n' "$$msg"; ex=1; \
+		elif test -n "$$msg"; then printf '%s\n' "$$msg"; ex=1; \
 		fi; \
 	    done; \
 	    exit $$ex; \
