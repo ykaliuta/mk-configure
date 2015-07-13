@@ -7,7 +7,7 @@ include mkc.gmake.mk
 
 TEST_PREREQS ?= all
 
-_tmp_out:=${.OBJDIR}/$(notdir ${.CURDIR})c.test.out
+_tmp_out:=${.OBJDIR}/$(notdir ${.CURDIR}).test.out
 
 .PHONY : test
 test: ${TEST_PREREQS}
