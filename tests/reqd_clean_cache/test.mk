@@ -12,4 +12,4 @@ test_output :
 	\
 	${MAKE} ${MAKEFLAGS} cleandir > /dev/null
 
-.include <mkc.minitest.mk>
+include mkc.minitest.mk

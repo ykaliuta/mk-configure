@@ -1,1 +1,1 @@
-.include "../test_mkc_vs_PROG/Makefile"
+include ../test_mkc_vs_PROG/Makefile

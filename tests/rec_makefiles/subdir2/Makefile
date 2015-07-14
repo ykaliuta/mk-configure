@@ -1,3 +1,3 @@
 SUBDIR=	prj2
 
-.include <mkc.subdir.mk>
+include mkc.subdir.mk

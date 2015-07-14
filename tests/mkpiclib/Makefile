@@ -4,5 +4,5 @@ MKPICLIB=	yes
 MKSHLIB=	no
 MKSTATICLIB=	no
 
-.include "../../examples/hello_cxxlib/cxxlib/Makefile"
-.include "test.mk"
+include ../../examples/hello_cxxlib/cxxlib/Makefile
+include test.mk

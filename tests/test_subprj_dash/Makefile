@@ -12,4 +12,4 @@ test:
 	echo '      succeeded' 1>&2 || \
 	{ echo '      FAILED' 1>&2; false; }
 
-.include <mkc.subprj.mk>
+include mkc.subprj.mk

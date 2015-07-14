@@ -8,5 +8,5 @@ SYMLINKS =	${BINDIR}/foo ${BINDIR}/foo2
 MLINKS   =	qux.1 qux2.1
 TEXINFO  =	qux.info
 
-.include "test.mk"
-.include <mkc.mk>
+include test.mk
+include mkc.mk

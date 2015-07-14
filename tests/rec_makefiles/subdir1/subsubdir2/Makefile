@@ -1,4 +1,4 @@
 .PHONY: all
 all: print-values
 
-.include <mkc.files.mk>
+include mkc.files.mk

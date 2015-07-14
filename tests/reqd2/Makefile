@@ -4,5 +4,5 @@ SUBPRJ=		dir1 dir2
 
 CLEANFILES +=	${.OBJDIR}/${.CURDIR:T}.test.out
 
-.include "test.mk"
-.include <mkc.subprj.mk>
+include test.mk
+include mkc.subprj.mk

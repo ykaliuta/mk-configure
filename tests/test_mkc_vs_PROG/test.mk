@@ -1,3 +1,3 @@
 PROG =	prog
 
-.include <mkc.lib.mk>
+include mkc.lib.mk

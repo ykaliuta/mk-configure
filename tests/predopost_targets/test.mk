@@ -20,4 +20,4 @@ test_output :
 	true =========== cleandir ============; \
 	env REAL_TARGETS=1 ${MAKE} ${MAKEFLAGS} distclean > /dev/null
 
-.include <mkc.minitest.mk>
+include mkc.minitest.mk

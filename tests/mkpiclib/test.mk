@@ -38,4 +38,4 @@ test_output:
 	find ${.OBJDIR} -type f | \
 	mkc_test_helper "${PREFIX}" "${.OBJDIR}"
 
-.include <mkc.minitest.mk>
+include mkc.minitest.mk

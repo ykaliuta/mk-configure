@@ -44,4 +44,4 @@ test_output :
 	rm -rf ${.OBJDIR}${PREFIX}; \
 	${MAKE} ${MAKEFLAGS} distclean DESTDIR=${.OBJDIR} > /dev/null
 
-.include <mkc.minitest.mk>
+include mkc.minitest.mk

@@ -12,4 +12,4 @@ LINKS     = baz1 baz2
 INCS      = qqq.h
 DPSRCS    = zzz.c
 
-.include <mkc.mk>
+include mkc.mk

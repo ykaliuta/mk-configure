@@ -2,8 +2,8 @@ SUBDIR       = lib others lua
 TEST_PREREQS = 
 
 .ifdef INCFILE
-.include "${INCFILE}"
+include ${INCFILE}
 .endif
 
-.include "test.mk"
-.include <mkc.mk>
+include test.mk
+include mkc.mk

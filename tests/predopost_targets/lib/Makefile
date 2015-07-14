@@ -1,3 +1,3 @@
 LIB = foo
 
-.include <mkc.mk>
+include mkc.mk

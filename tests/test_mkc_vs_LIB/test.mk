@@ -1,3 +1,3 @@
 LIB =	my
 
-.include <mkc.files.mk>
+include mkc.files.mk
