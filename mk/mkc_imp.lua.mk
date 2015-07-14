@@ -49,15 +49,20 @@ endif # defined(LUA_CMODULES)
 ######################
 include mkc_imp.pkg-config.mk
 
+ifdef LUA_MODULES
 ifeq (${LUA_LMODDIR},)
 MKC_ERR_MSG  +=	"ERROR: pkg-config --variable=INSTALL_LMOD lua failed"
 endif
+endif
 
+ifdef LUA_CMODULE
 ifeq (${LUA_CMODDIR},)
 MKC_ERR_MSG  +=	"ERROR: pkg-config --variable=INSTALL_CMOD lua failed"
+endif
+
 ifeq (${MKC_ERR_MSG},)
 MKC_REQUIRE_HEADERS +=	lua.h
 endif # !empty(MKC_ERR_MSG)
 endif # LUA_CMODULE
 
-endif # LUA_MODULES) || LUA_CMODULE # _check for gmake
+endif # LUA_MODULES || LUA_CMODULE
