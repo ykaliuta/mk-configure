@@ -3,42 +3,42 @@ MKC_PROG.id.$(subst +,x,$(firstword ${1}))
 endef
 
 ifneq (${YACC},)
-ifneq ($(call filter-glob,*.y,${_srcsall}),)
+ifneq ($(filter %.y,${_srcsall}),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${YACC})
-$(call prog_id_var ${YACC}) = 	yacc
+$(call prog_id_var,${YACC}) = 	yacc
 endif
 endif
 
 ifneq (${LEX},)
-ifneq ($(call filter-glob,*.l,${_srcsall}),)
+ifneq ($(filter %..l,${_srcsall}),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${LEX})
 $(call prog_id_var,${LEX}) = 	lex
 endif
 endif
 
 ifneq (${CC},)
-ifneq ($(or $(call filter-glob,*.c,${_srcsall})$(call filter-glob,*.l,${_srcsall})$(call filter-glob,*.y,${_srcsall})),)
+ifneq ($(or $(filter %.c,${_srcsall})$(filter %.l,${_srcsall})$(filter %.y,${_srcsall})),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${CC})
 $(call prog_id_var,${CC}) =	cc
 endif
 endif
 
 ifneq (${CXX},)
-ifneq ($(or $(call filter-glob,*.cc,${_srcsall})$(call filter-glob,*.C,${_srcsall})$(call filter-glob,*.cxx,${_srcsall})),)
+ifneq ($(or $(filter %.cc,${_srcsall})$(filter %.C,${_srcsall})$(filter %.cxx,${_srcsall})),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${CXX})
 $(call prog_id_var,${CXX}) = 	cxx
 endif
 endif
 
 ifneq (${FC},)
-ifneq ($(call filter-glob,*.f,${_srcsall}),)
+ifneq ($(filter %.f,${_srcsall}),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${FC})
 $(call prog_id_var,${FC}) = 	fc
 endif
 endif
 
 ifneq (${PC},)
-ifneq ($(call filter-glob,*.p,${_srcsall}),)
+ifneq ($(filter %.p,${_srcsall}),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${PC})
 $(call prog_id_var,${PC}) = 	pc
 endif
