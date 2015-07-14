@@ -37,8 +37,8 @@ ifndef LUA_CMODDIR
 PKG_CONFIG_VARS.lua +=	INSTALL_CMOD
 LUA_CMODDIR         ?=	${PKG_CONFIG.var.lua.INSTALL_CMOD}
 endif
-LIB        =		$(notdir $(shell echo ${LUA_CMODULE} | sed "s|.|/|"))
-SRCS      ?=		$(subst .,_,${LUA_CMODULE}.c)
+LIB        =		$(notdir $(call sed,s|.|/|,${LUA_CMODULE}))
+SRCS      ?=		$(subst .,_,${LUA_CMODULE}).c
 MKDLL      =		Only
 DLL_EXT    =		.so
 LIBDIR     =		${LUA_CMODDIR}/$(dir $(subst .,/,${LUA_CMODULE}))
