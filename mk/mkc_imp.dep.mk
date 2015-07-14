@@ -27,8 +27,8 @@ define gen_dep_names
 $(call replace_extentions,c m s S C cc cpp cxx,d,${1})
 endef
 
-__DPSRCS.all  = $(call gen_dep_names,${_SRCS_ALL})\
-		$(call gen_dep_names,${DPSRCS}
+__DPSRCS.all  = $(call gen_dep_names,${_SRCS_ALL}) \
+		$(call gen_dep_names,${DPSRCS})
 __DPSRCS.d    = $(filter %.d,$(sort ${__DPSRCS.all}))
 __DPSRCS.notd = $(filter-out %.d,$(sort ${__DPSRCS.all}))
 

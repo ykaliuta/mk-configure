@@ -44,15 +44,15 @@ POBJS  =	${OBJS:.o=.op}
 
 SRC_PATHADD +=	$(filter-out ./,$(dir $(filter-out %.h %.sh,${SRCS})))
 
-ifneq ($(call tolower,${MKSTATICLIB},no))
+ifneq ($(call tolower,${MKSTATICLIB}),no)
 _LIBS +=	lib${LIB}.a
 endif
 
-ifneq ($(call tolower,${MKPROFILELIB},no))
+ifneq ($(call tolower,${MKPROFILELIB}),no)
 _LIBS +=	lib${LIB}_p.a
 endif
 
-ifneq ($(call tolower,${MKPICLIB},no))
+ifneq ($(call tolower,${MKPICLIB}),no)
 _LIBS +=	lib${LIB}_pic.a
 endif # MKPICLIB
 
@@ -140,7 +140,7 @@ ${DESTDIR}${LIBDIR}/lib${LIB}.a: lib${LIB}.a
 endif
 
    # MKPROFILELIB
-ifneq ($(call tolower,${MKPROFILELIB},no)
+ifneq ($(call tolower,${MKPROFILELIB}),no)
 libinstall:: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 .PRECIOUS: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a
 .PHONY: ${DESTDIR}${LIBDIR}/lib${LIB}_p.a

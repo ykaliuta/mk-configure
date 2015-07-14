@@ -38,7 +38,7 @@ PKG_CONFIG_VARS.lua +=	INSTALL_CMOD
 LUA_CMODDIR         ?=	${PKG_CONFIG.var.lua.INSTALL_CMOD}
 endif
 LIB        =		$(notdir $(shell echo ${LUA_CMODULE} | sed "s|.|/|"))
-SRCS      ?=		$(subst .,_,${LUA_CMODULE}.c
+SRCS      ?=		$(subst .,_,${LUA_CMODULE}.c)
 MKDLL      =		Only
 DLL_EXT    =		.so
 LIBDIR     =		${LUA_CMODDIR}/$(dir $(subst .,/,${LUA_CMODULE}))
@@ -47,17 +47,12 @@ endif # defined(LUA_CMODULES)
 ######################
 include mkc_imp.pkg-config.mk
 
-ifdef LUA_MODULES
 ifeq (${LUA_LMODDIR},)
 MKC_ERR_MSG  +=	"ERROR: pkg-config --variable=INSTALL_LMOD lua failed"
 endif
-endif
 
-ifdef LUA_CMODULE
 ifeq (${LUA_CMODDIR},)
 MKC_ERR_MSG  +=	"ERROR: pkg-config --variable=INSTALL_CMOD lua failed"
-endif
-
 ifeq (${MKC_ERR_MSG},)
 MKC_REQUIRE_HEADERS +=	lua.h
 endif # !empty(MKC_ERR_MSG)
