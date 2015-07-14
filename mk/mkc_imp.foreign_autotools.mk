@@ -24,7 +24,7 @@ _FSRCDIR = ${FSRCDIR}
 endif
 
 ifeq (${.OBJDIR},${CURDIR})
-OBJDIR  =	${_FSRCDIR}
+.OBJDIR  =	${_FSRCDIR}
 endif
 _FOBJDIR =	${.OBJDIR}
 
