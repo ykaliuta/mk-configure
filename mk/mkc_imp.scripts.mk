@@ -26,7 +26,7 @@ define __gen_dest_script
 					$(notdir ${1}))
 endef
 
-destination_scripts = $(foreach I,${SCRIPTS},$(call __gen_dest_script,${I}))
+destination_scripts := $(foreach I,${SCRIPTS},$(call __gen_dest_script,${I}))
 UNINSTALLFILES +=	${destination_scripts}
 INSTALLDIRS    +=	$(filter-out ./,$(dir ${destination_scripts}))
 endif # MKINSTALL
@@ -43,7 +43,7 @@ __scriptinstall = \
 	    ${.ALLSRC} ${.TARGET}
 
 define __gen_install_rule
-$(call __gen_install_script,${F}): ${F}
+$(call __gen_dest_script,${F}): ${F}
 	$(__scriptinstall)
 endef
 
