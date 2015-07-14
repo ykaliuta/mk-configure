@@ -51,7 +51,7 @@ ddash=
 endif
 
 define filter_flags
-$(filter -I% -D% -U%,$(call sed,s/-([IDU])[  ]*/-\\1/g,${1}))
+$(filter -I% -D% -U%,$(call sed,s/-([IDU])[  ]*/-\1/g,${1}))
 endef
 
 ifeq (${MKDEP_TYPE},makedepend)
@@ -80,7 +80,7 @@ endif
 ifeq (${MKDEP_TYPE},nbmkdep)
 	@${MKDEP} -d -f $@ -s $(call shell-quote ${MKDEP_SUFFIXES}) ${__DPSRCS.d}
 else
-	@sed 's/^\\([^ ]*\\)[.]o\\(.*\\)$$/${MKDEP_SUFFIXES:C,^,\\\\1,}\\2/' ${__DPSRCS.d} > $@
+	@sed 's/^\([^ ]*\)[.]o\(.*\)$$/${MKDEP_SUFFIXES:C,^,\\\\1,}\2/' ${__DPSRCS.d} > ${.TARGET}
 endif
 
 .SUFFIXES: .d .s .S .c .C .cc .cpp .cxx .m
