@@ -17,14 +17,14 @@ endif
 endif
 
 ifneq (${CC},)
-ifneq ($(or $(filter %.c,${_srcsall})$(filter %.l,${_srcsall})$(filter %.y,${_srcsall})),)
+ifneq ($(or $(filter %.c,${_srcsall}),$(filter %.l,${_srcsall}),$(filter %.y,${_srcsall})),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${CC})
 $(call prog_id_var,${CC}) =	cc
 endif
 endif
 
 ifneq (${CXX},)
-ifneq ($(or $(filter %.cc,${_srcsall})$(filter %.C,${_srcsall})$(filter %.cxx,${_srcsall})),)
+ifneq ($(or $(filter %.cc,${_srcsall}),$(filter %.C,${_srcsall}),$(filter %.cxx,${_srcsall}),$(filter %.cpp,${_srcsall})),)
 MKC_REQUIRE_PROGS  +=		$(firstword ${CXX})
 $(call prog_id_var,${CXX}) = 	cxx
 endif
