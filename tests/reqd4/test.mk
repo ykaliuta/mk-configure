@@ -5,8 +5,8 @@ test:
 	set -e; cd ${.CURDIR}; \
 	tmp_out=${.OBJDIR}/${.CURDIR:T}.test.out; \
 	{ \
-	  ${MAKE} ${MAKEFLAGS} -j3 all 2>&1 | sed -n 2p; \
-	  ${MAKE} ${MAKEFLAGS} -j3 all MAKE_VERSION=00000000 2>&1 | sed 's/^.*"bmake/"bmake/'; \
+	  ${MAKE} -j3 all 2>&1 | sed -n 2p; \
+	  ${MAKE} -j3 all MAKE_VERSION=00000000 2>&1 | sed 's/^.*"bmake/"bmake/'; \
 	  echo =========== all ============; \
 	  find ${.OBJDIR} -type f -o -type l | \
 	  mkc_test_helper "${PREFIX}" "${.OBJDIR}"; \
@@ -14,5 +14,5 @@ test:
 	diff ${.CURDIR}/expect.out $$tmp_out && \
 	echo '      succeeded' 1>&2 || \
 	{ echo '      FAILED' 1>&2; ex=1; }; \
-	${MAKE} ${MAKEFLAGS} cleandir; \
+	${MAKE} cleandir; \
 	exit $$ex
