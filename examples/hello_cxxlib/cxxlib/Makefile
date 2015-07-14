@@ -14,5 +14,4 @@ SRCS =		hello_msg1.cpp hello_msg2.cpp
 
 MKC_SOURCE_FUNCLIBS = dummy # a part of regression test
 MKC_SOURCE_DIR.dummy.c := $(realpath ${CURDIR}/$(dir $(lastword ${MAKEFILE_LIST})))
-$(warning :${MKC_SOURCE_DIR.dummy.c})
 include mkc.lib.mk
