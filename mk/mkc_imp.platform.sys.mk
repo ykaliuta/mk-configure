@@ -266,7 +266,7 @@ CXXFLAGS.ssp   ?= $(or ${CFLAGS.ssp.${CXX_TYPE}.${TARGET_OPSYS}},\
 ####################
 RANLIB.IRIX64 =		true
 
-RANLIB ?=		$(or ${RANLIB.${TARGET_OPSYS}} ranlib)
+RANLIB ?=		$(or ${RANLIB.${TARGET_OPSYS}},ranlib)
 
 ####################
 NROFF_MAN2CAT.SunOS ?=		-man
@@ -350,23 +350,23 @@ CLEANFILES +=			${.OBJDIR}/${LIB}_so_locations
 endif
 endif # TARGET_OPSYS
 
-CFLAGS.cctold   ?=		$(or ${CFLAGS.cctold.${CC_TYPE}} -Wl,)
-CXXFLAGS.cctold ?=		$(or ${CFLAGS.cctold.${CXX_TYPE}} -Wl,)
+CFLAGS.cctold   ?=		$(or ${CFLAGS.cctold.${CC_TYPE}},-Wl${COMMA})
+CXXFLAGS.cctold ?=		$(or ${CFLAGS.cctold.${CXX_TYPE}},-Wl${COMMA})
 
 LDFLAGS.soname.ld =		${LDFLAGS.soname.${LD_TYPE}}
 
 ifeq (${LDREAL},${LD})
-LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${LD_TYPE}} -shared)
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${LD_TYPE}},-shared)
 LDFLAGS.soname ?=		${LDFLAGS.soname.ld}
 else ifeq (${LDREAL},${CC})
-LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CC_TYPE}.${TARGET_OPSYS}} \
-				    ${LDFLAGS.shared.${CC_TYPE}} \
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CC_TYPE}.${TARGET_OPSYS}}, \
+				    ${LDFLAGS.shared.${CC_TYPE}}, \
 				    -shared)
-LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CC_TYPE}} \
+LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CC_TYPE}}, \
 				  $(foreach v,${LDFLAGS.soname.ld},${CFLAGS.cctold}${v}))
 else ifeq (${LDREAL},${CXX})
-LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CXX_TYPE}.${TARGET_OPSYS}} ${LDFLAGS.shared.${CXX_TYPE}} -shared)
-LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CXX_TYPE}} \
+LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CXX_TYPE}.${TARGET_OPSYS}},${LDFLAGS.shared.${CXX_TYPE}},-shared)
+LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CXX_TYPE}}, \
 				  $(foreach v,${LDFLAGS.soname.ld},{CXXFLAGS.cctold}${v}))
 endif # LDREAL
 
