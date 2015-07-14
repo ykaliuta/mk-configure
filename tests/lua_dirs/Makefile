@@ -5,8 +5,8 @@ LUA_LMODULES=	../../examples/hello_lua/foo.lua
 LUA_LMODULES+=	../../examples/hello_lua/bar.lua
 LUA_CMODULE=	baz
 
-SCRIPTS   =	${INSCRIPTS:T}
+SCRIPTS   =	$(notdir ${INSCRIPTS})
 INSCRIPTS=	../../examples/hello_lua/foobar
 
-.include <mkc.lib.mk>
-.include "test.mk"
+include mkc.lib.mk
+include test.mk
