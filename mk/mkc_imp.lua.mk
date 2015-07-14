@@ -26,7 +26,7 @@ endif #LUA_LMODDIR
 define __gen_modules
 LUA_SRCS.${i}       ?=	$(subst .,_,${i}).lua
 $(eval FILES               +=	${LUA_SRCS.${i}})
-FILESDIR_${LUA_SRCS.${i}} := ${LUA_LMODDIR}/$(filter-out ./,$(dir $(subst .,/,${i})))
+$(eval FILESDIR_${LUA_SRCS.${i}} = $${LUA_LMODDIR}/$(filter-out ./,$(dir $(subst .,/,${i}))))
 FILESNAME_${LUA_SRCS.${i}} := $(notdir $(subst .,/,${i})).lua
 endef
 
