@@ -7,7 +7,7 @@ include mkc.gmake.mk
 
 TEST_PREREQS ?= all
 
-_tmp_out:=${.OBJDIR}/$(notdir ${.CURDIR}).test.out
+_tmp_out:=${.OBJDIR}/$(notdir ${CURDIR}).test.out
 
 .PHONY : test
 test: ${TEST_PREREQS}
@@ -25,5 +25,5 @@ test: ${TEST_PREREQS}
 	echo '      succeeded' 1>&2 || \
 	{ echo '      FAILED' 1>&2; false; }
 
-CLEANFILES   +=		${.OBJDIR}/${.CURDIR:T}.test.out
+CLEANFILES   +=		${.OBJDIR}/$(notdir ${CURDIR}).test.out
 #DISTCLEANFILES+=	${.OBJDIR}/${.CURDIR:T}.test.out.tmp
