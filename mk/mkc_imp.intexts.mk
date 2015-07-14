@@ -46,19 +46,25 @@ $(call __start,${INTEXTS_REPLS})
 endif
 endif
 
+define __infile
 #TODO
 #.NOPATH: ${i:T}
-$(notdir ${INFILES}): %: %.in
+$(notdir ${i}): ${i}.in
 	${MESSAGE.gen}
 	${_V} sed ${INTEXTS_SED} ${.ALLSRC} > ${.TARGET} && \
 	chmod 0644 ${.TARGET}
+endef
+$(foreach i,${INFILES},$(eval $(value __infile)))
 
+define __inscript
 #TODO
 #.NOPATH: ${i:T}
-$(notdir ${INSCRIPTS}): %: %.in
+$(notdir ${i}): ${i}.in
 	${MESSAGE.gen}
 	${_V} sed ${INTEXTS_SED} ${.ALLSRC} > ${.TARGET} && \
 	chmod 0755 ${.TARGET}
+endef
+$(foreach i,${INSCRIPTS},$(eval $(value __inscript)))
 
 CLEANFILES   +=	$(notdir ${INSCRIPTS}) $(notdir ${INFILES})
 
