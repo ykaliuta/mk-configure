@@ -1,4 +1,4 @@
-.PATH: ../../examples/hello_cxxlib/cxxlib
+#.PATH: ../../examples/hello_cxxlib/cxxlib
 
 MKDLL       =	only
 
