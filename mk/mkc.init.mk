@@ -57,16 +57,16 @@ SRCS     ?=	${LIB}.c
 _srcsall +=	${SRCS}
 endif # defined(PROG)
 
-ifneq ($(filter %.cxx %.cpp %.C %.cc,${__srcall}),)
+ifneq ($(filter %.cxx %.cpp %.C %.cc,${_srscall}),)
 src_type   +=	cxx
 LDREAL     ?=	${CXX}
-else ifneq ($(filter %.pas %.p,${__srcall}),)
+else ifneq ($(filter %.pas %.p,${_srcsall}),)
 src_type   +=	pas
 LDREAL     ?=	${PC}
 endif
 
 # last was actually defined(MKC_SOURCE_FUNCLIBS)
-ifneq ($(or $(filter %.c %.l %.y,${__srcall}),${MKC_SOURCE_FUNCLIBS}),)
+ifneq ($(or $(filter %.c %.l %.y,${_srcsall})),${MKC_SOURCE_FUNCLIBS},)
 src_type  +=	c
 endif
 

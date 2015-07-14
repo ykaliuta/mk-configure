@@ -103,10 +103,9 @@ CPPFLAGS +=	${CPPFLAGS.${TARGET_OPSYS}}
 # CC compiler type
 ifeq ($(filter ${CLEAN_TARGETS},${MAKECMDGOALS}),)
 ifeq ($(call tolower,${MKCHECKS}),yes)
-ifndef CC_TYPE
+ifeq (${CC_TYPE},)
 # (defined(PROGS) || defined(LIB) || defined(MKC_CHECK_PROTOTYPES))
-ifneq ($(strip $(filter-out undefined, \
-	$(origin PROGS) $(origin LIB) $(origin MKC_CHECK_PROTOTYPES))),)
+ifneq ($(or ${PROGS},${LIB},${MKC_CHECK_PROTOTYPES}),)
 
 mkc.cc_type.environ = CC='${CC}' CXX='${CXX}' CPPFLAGS='${CPPFLAGS}' CFLAGS='${CFLAGS}' LDFLAGS='${LDFLAGS}' LDADD='${LDADD}' MKC_CACHEDIR='${MKC_CACHEDIR}' MKC_DELETE_TMPFILES='${MKC_DELETE_TMPFILES}' MKC_SHOW_CACHED='${MKC_SHOW_CACHED}' MKC_NOCACHE='${MKC_NOCACHE}' MKC_VERBOSE=1
 ifeq (${src_type},c)
@@ -236,10 +235,8 @@ CFLAGS.pic.ibmc =		-qpic=large # -qpic=small
 CFLAGS.pic.decc =
 
 
-CFLAGS.pic   ?= $(or ${CFLAGS.pic.${CC_TYPE}.${TARGET_OPSYS}},\
-			${CFLAGS.pic.${CC_TYPE}})
-CXXFLAGS.pic   ?= $(or ${CFLAGS.pic.${CXX_TYPE}.${TARGET_OPSYS}},\
-			${CFLAGS.pic.${CXX_TYPE}})
+CFLAGS.pic   ?= $(or ${CFLAGS.pic.${CC_TYPE}.${TARGET_OPSYS}},${CFLAGS.pic.${CC_TYPE}})
+CXXFLAGS.pic   ?= $(or ${CFLAGS.pic.${CXX_TYPE}.${TARGET_OPSYS}},${CFLAGS.pic.${CXX_TYPE}})
 
 ####################
 CFLAGS.pie.gcc.Interix =

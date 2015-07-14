@@ -19,14 +19,16 @@ PKG_CONFIG_VARS.lua +=	INSTALL_LMOD
 LUA_LMODDIR         ?=	${PKG_CONFIG.var.lua.INSTALL_LMOD}
 endif #LUA_LMODDIR
 
-# $(1) lua module
-define gen_modules
-LUA_SRCS.$(1)       ?=	$(subst .,_,$(1)).lua
-FILES               +=	$${LUA_SRCS.$(1)}
-FILESDIR_$${LUA_SRCS.$(1)} =	${LUA_LMODDIR}/$(patsubst %/,%,$(dir $(subst .,/,$(1))))
-FILESNAME_$${LUA_SRCS.$(1)} =	$(notdir $(subst .,/,$(1))).lua
+# ${i} lua module
+define __gen_modules
+LUA_SRCS.${i}       ?=	$(subst .,_,${i}).lua
+FILES               +=	${LUA_SRCS.${i}}
+FILESDIR_${LUA_SRCS.${i}} = ${LUA_LMODDIR}/$(filter-out ./,$(dir $(subst .,/,${i})))
+FILESNAME_${LUA_SRCS.${i}} = $(notdir $(subst .,/,${i})).lua
 endef
-$(eval $(foreach i,${LUA_MODULES},$(call gen_modules,${i})))
+
+$(foreach i,${LUA_MODULES},$(eval $(value __gen_modules)))
+
 endif # defined(LUA_MODULES)
 
 ### .c module
@@ -37,11 +39,11 @@ ifndef LUA_CMODDIR
 PKG_CONFIG_VARS.lua +=	INSTALL_CMOD
 LUA_CMODDIR         ?=	${PKG_CONFIG.var.lua.INSTALL_CMOD}
 endif
-LIB        =		$(notdir $(call sed,s|.|/|,${LUA_CMODULE}))
+LIB        =		$(notdir $(subst .,/,${LUA_CMODULE}))
 SRCS      ?=		$(subst .,_,${LUA_CMODULE}).c
 MKDLL      =		Only
 DLL_EXT    =		.so
-LIBDIR     =		${LUA_CMODDIR}/$(dir $(subst .,/,${LUA_CMODULE}))
+LIBDIR     =		${LUA_CMODDIR}/$(filter-out ./,$(dir $(subst .,/,${LUA_CMODULE})))
 endif # defined(LUA_CMODULES)
 
 ######################
