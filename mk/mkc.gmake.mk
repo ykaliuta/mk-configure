@@ -48,7 +48,7 @@ endef
 # $(2) list
 # almost stub implementation
 define filter-glob
-$(foreach I,$(2),$(shell echo ${I} | grep '^$(subst *,.*,$(subst ?,.,$(1)))$$'))
+$(foreach I,$(2),$(shell echo ${I} | grep '^$(subst *,.*,$(subst ?,.,$(subst .,[.],$(1))))$$'))
 endef
 
 bs := \\
