@@ -1,4 +1,5 @@
-#.PATH: ../../examples/hello_cxxlib/cxxlib
+VPATH += ../../examples/hello_cxxlib/cxxlib
+export VPATH
 
 MKDLL       =	only
 

@@ -37,8 +37,8 @@ do_depend2: .depend
 
 MESSAGE.dep ?=	@${_MESSAGE} "DEP: $@"
 
-.depend: VPATH :=
-${__DPSRCS.d}: VPATH :=
+#.depend: VPATH :=
+#${__DPSRCS.d}: VPATH :=
 
 ifneq (${__DPSRCS.d},)
 ${__DPSRCS.d}: ${__DPSRCS.notd} ${DPSRCS}
