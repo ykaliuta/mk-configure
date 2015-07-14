@@ -5,9 +5,12 @@
 
 
 #LUA_SRC.<mod> = <lmod>
-$(foreach i,${LUA_LMODULES},$(eval \
-LUA_MODULES += $(basename $(notdir ${i})) \
-LUA_SRCS.$(basename $(notdir ${i})) = ${i}))
+define __lua_module
+$(eval LUA_MODULES += $(basename $(notdir ${i})))
+LUA_SRCS.$(basename $(notdir ${i})) := ${i}
+endef
+
+$(foreach i,${LUA_LMODULES},$(eval $(value __lua_module)))
 
 ifneq ($(or ${LUA_MODULES},${LUA_CMODULE}),)
 
@@ -22,9 +25,9 @@ endif #LUA_LMODDIR
 # ${i} lua module
 define __gen_modules
 LUA_SRCS.${i}       ?=	$(subst .,_,${i}).lua
-FILES               +=	${LUA_SRCS.${i}}
-FILESDIR_${LUA_SRCS.${i}} = ${LUA_LMODDIR}/$(filter-out ./,$(dir $(subst .,/,${i})))
-FILESNAME_${LUA_SRCS.${i}} = $(notdir $(subst .,/,${i})).lua
+$(eval FILES               +=	${LUA_SRCS.${i}})
+FILESDIR_${LUA_SRCS.${i}} := ${LUA_LMODDIR}/$(filter-out ./,$(dir $(subst .,/,${i})))
+FILESNAME_${LUA_SRCS.${i}} := $(notdir $(subst .,/,${i})).lua
 endef
 
 $(foreach i,${LUA_MODULES},$(eval $(value __gen_modules)))
