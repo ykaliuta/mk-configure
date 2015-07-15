@@ -15,6 +15,7 @@ COMMA	:= ,
 .TARGET = $@
 .ALLSRC = $^
 .IMPSRC = $<
+.PARSEDIR = $(realpath ${CURDIR}/$(dir $(lastword ${MAKEFILE_LIST})))
 
 MAKEFLAGS += --no-print-directory
 
