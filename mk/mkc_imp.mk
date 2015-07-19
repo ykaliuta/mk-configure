@@ -111,7 +111,7 @@ endif # SUBPRJ
 ###########
 # TODO: quote for shell
 define print_cmd
-printf "%s=%s\n" $(1) ${$(1)}
+printf "%s=%s\n" $(1) "${$(1)}"
 
 endef
 
@@ -121,7 +121,7 @@ print_values :
 
 # TODO: quote for shell
 define print2_cmd
-printf "%s\n" ${$(1)}
+printf "%s\n" "${$(1)}"
 
 endef
 .PHONY : print_values2
