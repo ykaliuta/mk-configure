@@ -19,6 +19,13 @@ COMMA	:= ,
 
 MAKEFLAGS += --no-print-directory
 
+ifeq ($(origin COMPILE.cc),default)
+undefine COMPILE.cc
+endif
+ifeq ($(origin COMPILE.c),default)
+undefine COMPILE.c
+endif
+
 define tolower
 $(shell echo $(1) | tr [:upper:] [:lower:])
 endef
