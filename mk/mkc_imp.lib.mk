@@ -174,7 +174,7 @@ UNINSTALLFILES.lib +=	${DESTDIR}${LIBDIR}/lib${LIB}${SHLIB_EXT} \
 CLEANFILES += \
 	lib${LIB}${SHLIB_EXT} lib${LIB}${SHLIB_EXT1} \
 	lib${LIB}${SHLIB_EXT2} \
-	${$(if $(call is_defined,SHLIB_EXT3),${SHLIB_EXT3},lib)${LIB}${SHLIB_EXT3}}
+	$(if ${SHLIB_EXT3},lib${LIB}${SHLIB_EXT3})
 else
 CLEANFILES += ${SHLIBFN}
 endif
