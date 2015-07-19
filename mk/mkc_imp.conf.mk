@@ -138,7 +138,7 @@ ifneq ($(filter $(call sed,s/:.*//,${f}),${_MKC_SOURCE_FUNCS}),)
 _varsuffix := $(call sed,s/:.*//,${f}).c
 _varname := MKC_SOURCE_DIR.${_varsuffix}
 
-$(eval MKC_SRCS += $(or ${${_varname}},${MKC_SOURCE_DIR}/${_varsuffix}))
+$(eval MKC_SRCS += $(or ${${_varname}},${MKC_SOURCE_DIR})/${_varsuffix})
 
 endif
 endif
