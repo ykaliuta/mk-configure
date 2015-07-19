@@ -7,7 +7,7 @@
 # See LICENSE file in the distribution.
 ############################################################
 
-ifdef _MKC_IMP_PROG_MK
+ifndef _MKC_IMP_PROG_MK
 _MKC_IMP_PROG_MK := 1
 
 proginstall: # ensure existence
@@ -19,53 +19,56 @@ __proginstall = \
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} ${STRIPFLAG} \
 	    -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} ${.ALLSRC} ${.TARGET}
 
+# need to evaluate progname in a variable
+# ${1} -- progname
+define __gen_prog_recipe
+${1}: ${LIBCRT0} ${DPSRCS.${1}} ${OBJS.${1}} ${LIBC} ${LIBCRTBEGIN} ${LIBCRTEND} ${DPADD}
+# TODO
+#.if !commands(${p})
+	$${MESSAGE.ld}
+	$${_V}$${LDREAL} -o $${.TARGET} $${OBJS.${1}} \
+	    $${LDFLAGS0} $${LDADD0} \
+	    $${LDFLAGS} $${LDFLAGS.prog} $${LDADD}
+#.endif # !commands(...)
+endef
+
 # ${p} is prog
 define __gen_prog_rules
 do_install1:	proginstall
 
 _SRCS_ALL += ${SRCS.${p}}
 
-DPSRCS.${p} = $(patsubst %.l,%.c,\
-		$(patsubst %.y,%.c,\
-		  $(filter %.l %.c,${SRCS})))
+DPSRCS.${p} := $(patsubst %.l,%.c,$(patsubst %.y,%.c,$(filter %.l %.y,${SRCS})))
 
-CLEANFILES +=	${DPSRCS.${p}}
+$(eval CLEANFILES +=	${DPSRCS.${p}})
 ifdef YHEADER
-CLEANFILES += $(patsubst %.y,%.h,$(filter %.y,${SRCS}))
+$(eval CLEANFILES += $(patsubst %.y,%.h,$(filter %.y,${SRCS})))
 endif # defined(YHEADER)
 
-OBJS.${p} =	$(addsuffix .o,$(basename $(notdir \
-			$(filter-out %.h %.sh %.fth,${SRCS}))))
+OBJS.${p} :=	$(addsuffix .o,$(basename $(notdir $(filter-out %.h %.sh %.fth,${SRCS}))))
 
-SRC_PATHADD += $(filter-out ./,$(dir $(filter-out %.h %.sh,${SRCS})))
+$(eval SRC_PATHADD += $(filter-out ./,$(dir $(filter-out %.h %.sh,${SRCS}))))
 
 ifneq (${OBJS.${p}},)
 # TODO
 #.NOPATH: ${OBJS.${p}}
 
-${p}: ${LIBCRT0} ${DPSRCS.${p}} ${OBJS.${p}} ${LIBC} ${LIBCRTBEGIN} ${LIBCRTEND} ${DPADD}
-# TODO
-#.if !commands(${p})
-	${MESSAGE.ld}
-	${_V}${LDREAL} -o ${.TARGET} ${OBJS.${p}} \
-	    ${LDFLAGS0} ${LDADD0} \
-	    ${LDFLAGS} ${LDFLAGS.prog} ${LDADD}
-#.endif # !commands(...)
+$(eval $(call __gen_prog_recipe,${p}))
 
 endif	# defined(OBJS.${p}) && !empty(OBJS.${p})
 
 ifndef MAN
 ifneq ($(wildcard ${p}.1),)
-MAN +=		${p}.1
+$(eval MAN +=		${p}.1)
 endif
 endif # !defined(MAN)
 
-PROGNAME.${p} ?=	$(or ${PROGNAME},${p})
+$(eval PROGNAME.${p} ?=	$(or ${PROGNAME},${p}))
 
+dest_prog.${p}   :=	${DESTDIR}${BINDIR}/${PROGNAME.${p}}
 ifeq ($(call tolower,${MKINSTALL}),yes)
-dest_prog.${p}   =	${DESTDIR}${BINDIR}/${PROGNAME.${p}}
-UNINSTALLFILES  +=	${dest_prog.${p}}
-INSTALLDIRS     +=	$(dir ${dest_prog.${p}})
+$(eval UNINSTALLFILES  +=	${dest_prog.${p}})
+$(eval INSTALLDIRS     +=	$(dir ${dest_prog.${p}}))
 
 proginstall: ${dest_prog.${p}}
 .PRECIOUS:    ${dest_prog.${p}}
@@ -75,7 +78,7 @@ endif # ${MKINSTALL:tl} == "yes"
 ${DESTDIR}${BINDIR}/${PROGNAME.${p}}: ${p}
 	${__proginstall}
 
-CLEANFILES +=	${OBJS.${p}}
+$(eval CLEANFILES +=	${OBJS.${p}})
 
 endef
 
