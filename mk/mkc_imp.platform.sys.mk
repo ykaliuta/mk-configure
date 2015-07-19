@@ -364,7 +364,7 @@ LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CC_TYPE}}, \
 else ifeq (${LDREAL},${CXX})
 LDFLAGS.shared ?=		$(or ${LDFLAGS.shared.${CXX_TYPE}.${TARGET_OPSYS}},${LDFLAGS.shared.${CXX_TYPE}},-shared)
 LDFLAGS.soname ?=		$(or ${LDFLAGS.soname.${CXX_TYPE}}, \
-				  $(foreach v,${LDFLAGS.soname.ld},{CXXFLAGS.cctold}${v}))
+				  $(foreach v,${LDFLAGS.soname.ld},${CXXFLAGS.cctold}${v}))
 endif # LDREAL
 
 ####################
