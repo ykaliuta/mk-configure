@@ -80,8 +80,8 @@ define __archivebuild
 endef
 
 define __archiveinstall
-	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} -o ${LIBOWN:Q} \
-	    -g ${LIBGRP:Q} -m ${LIBMODE} ${.ALLSRC} ${.TARGET}
+	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} -o ${LIBOWN} \
+	    -g ${LIBGRP} -m ${LIBMODE} ${.ALLSRC} ${.TARGET}
 endef
 
 DPSRCS     += $(patsubst %.l,%.c,$(filter %.l,${SRCS}))
