@@ -70,11 +70,11 @@ endif
 ifneq (${MAN},)
 realdo_all: ${MAN}
 MANPAGES    =	${MAN}
-CATPAGES    =	$(call sed,s/(.*).([1-9])/\\1.cat\\2/,${MANPAGES})
+CATPAGES    =	$(call sed,s/\(.*\).\([1-9]\)/\1.cat\2/,${MANPAGES})
 CLEANFILES +=	${CATPAGES}
 #TODO
 #.NOPATH:	${CATPAGES}
-HTMLPAGES   =	$(call sed,s/(.*).([1-9])/\\1.html\\2/,${MANPAGES})
+HTMLPAGES   =	$(call sed,s/\(.*\).\([1-9]\)/\1.html\2/,${MANPAGES})
 endif
 
 MINSTALL    =	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} \
@@ -116,7 +116,7 @@ define gen_destcapage
     ${DESTDIR}${MANDIR}/$(suffix ${1})${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX}
 endef
 
-destination_capages = $(foreach P,${FILES},$(call gen_destcapage,${P}))
+destination_capages := $(foreach P,${FILES},$(call gen_destcapage,${P}))
 
 UNINSTALLFILES  +=	${destination_capages}
 INSTALLDIRS     +=	$(dir ${destination_capages})
@@ -210,7 +210,7 @@ endef
 $(foreach I,${HTMLPAGES},$(eval $(value __gen_install_rule)))
 
 ifeq ($(call tolower,${MKINSTALL}),yes)
-destination_htmls = $(foreach I,${HTMLPAGES},$(call __gen_dest_file,${I}))
+destination_htmls := $(foreach I,${HTMLPAGES},$(call __gen_dest_file,${I}))
 endif
 
 installhtml:            ${destination_htmls}

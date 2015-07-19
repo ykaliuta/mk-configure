@@ -22,8 +22,8 @@ linksinstall:
 
 
 define __add_files_and_dirs1
-UNINSTALLFILES += ${DESTDIR}${2}
-INSTALLDIRS += $(dir ${DESTDIR}${2})
+$(eval UNINSTALLFILES += ${DESTDIR}${2})
+$(eval INSTALLDIRS += $(dir ${DESTDIR}${2}))
 endef
 
 $(eval $(call process_pairs,__add_files_and_dirs,${LINKS} ${SYMLINKS}))
