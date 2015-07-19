@@ -307,9 +307,9 @@ BUILTIN.${c} :=		${CUSTOM.${c}} \
 
 define check_progs
 
-_varname := MKC_PROG_id.$(subst +,x,${p})
+_varname := MKC_PROG.id.$(subst +,x,${p})
 ifdef ${_varname}
-prog_id := ${_varname}
+prog_id := ${${_varname}}
 else
 prog_id := $(subst /,_,${p})
 endif
