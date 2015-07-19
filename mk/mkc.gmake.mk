@@ -19,12 +19,16 @@ COMMA	:= ,
 
 MAKEFLAGS += --no-print-directory
 
-ifeq ($(origin COMPILE.cc),default)
-undefine COMPILE.cc
+_GMAKE_DEFAULTS := COMPILE.cc COMPILE.c CC CXX CPP
+
+define undef_default
+ifeq ($(origin $(1)),default)
+undefine $(1)
 endif
-ifeq ($(origin COMPILE.c),default)
-undefine COMPILE.c
-endif
+endef
+
+$(foreach i,${_GMAKE_DEFAULTS},$(eval $(call undef_default,${i})))
+
 
 define tolower
 $(shell echo $(1) | tr [:upper:] [:lower:])
