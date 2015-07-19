@@ -116,7 +116,7 @@ define gen_destcapage
     ${DESTDIR}${MANDIR}/$(subst .,,$(suffix ${1}))${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX}
 endef
 
-destination_capages := $(foreach P,${FILES},$(call gen_destcapage,${P}))
+destination_capages := $(foreach P,${CATPAGES},$(call gen_destcapage,${P}))
 
 UNINSTALLFILES  +=	${destination_capages}
 INSTALLDIRS     +=	$(dir ${destination_capages})
