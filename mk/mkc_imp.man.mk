@@ -113,7 +113,7 @@ realdo_all: ${CATPAGES}
 ifeq ($(call tolower,${MKINSTALL}),yes)
 
 define gen_destcapage
-    ${DESTDIR}${MANDIR}/$(suffix ${1})${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX}
+    ${DESTDIR}${MANDIR}/$(subst .,,$(suffix ${1}))${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX}
 endef
 
 destination_capages := $(foreach P,${FILES},$(call gen_destcapage,${P}))
@@ -142,7 +142,7 @@ ifneq (${MANPAGES},)
 
 ifeq ($(call tolower,${MKINSTALL}),yes)
 
-__gen_dest_file = ${DESTDIR}${MANDIR}/man$(suffix ${1})${MANSUBDIR}/${1}${MCOMPRESSSUFFIX}
+__gen_dest_file = ${DESTDIR}${MANDIR}/man$(subst .,,$(suffix ${1}))${MANSUBDIR}/${1}${MCOMPRESSSUFFIX}
 
 destination_manpages := $(foreach I,${MANPAGES},$(call __gen_dest_file,${I}))
 UNINSTALLFILES  +=	${destination_manpages}
@@ -168,9 +168,9 @@ ifneq ($(call tolower,${MKCATPAGES}),no)
 # ${2} destination
 define __process_mlink
 $(eval \
-LINKS += ${MANDIR}/cat$(suffix ${1})${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX} \
-	     ${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
-UNINSTALLFILES += ${DESTDIR}${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
+LINKS += ${MANDIR}/cat$(subst .,,$(suffix ${1}))${MANSUBDIR}/$(basename $(notdir ${1})).0${MCOMPRESSSUFFIX} \
+	     ${MANDIR}/cat$(subst .,,$(suffix ${2}))${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
+UNINSTALLFILES += ${DESTDIR}${MANDIR}/cat$(subst .,,$(suffix ${2}))${MANSUBDIR}/$(basename $(notdir ${2})).0${MCOMPRESSSUFFIX}
 )
 endef
 
@@ -184,9 +184,9 @@ catlinks:
 # ${2} destination
 define __process_mlink
 $(eval \
-LINKS += ${MANDIR}/cat$(suffix ${1})${MANSUBDIR}/${1}${MCOMPRESSSUFFIX} \
-	   ${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
-UNINSTALLFILES += ${DESTDIR}${MANDIR}/cat$(suffix ${2})${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
+LINKS += ${MANDIR}/man$(subst .,,$(suffix ${1}))${MANSUBDIR}/${1}${MCOMPRESSSUFFIX} \
+	   ${MANDIR}/man$(subst .,,$(suffix ${2}))${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
+UNINSTALLFILES += ${DESTDIR}${MANDIR}/man$(subst .,,$(suffix ${2}))${MANSUBDIR}/${2}${MCOMPRESSSUFFIX}
 )
 endef
 
@@ -200,7 +200,7 @@ html: ${HTMLPAGES}
 
 ifneq (${HTMLPAGES},)
 
-__gen_dest_file = ${DESTDIR}${HTMLDIR}/$(suffix ${1})/$(basename $(notdir ${1})).html
+__gen_dest_file = ${DESTDIR}${HTMLDIR}/$(subst .,,$(suffix ${1}))/$(basename $(notdir ${1})).html
 
 define __gen_install_rule
 $(call __gen_dest_file,${I}): ${I}
