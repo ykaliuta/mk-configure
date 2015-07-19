@@ -9,7 +9,6 @@
 
 ifndef _MKC_IMP_INFO_MK
 ifdef TEXINFO
-
 _MKC_IMP_INFO_MK := 1
 
 .PHONY: infoinstall
@@ -42,7 +41,7 @@ INFOFILES = $(call gen_info_names,${TEXINFO})
 # TODO
 #.NOPATH:	${INFOFILES}
 
-ifeq ($(call tolower,${MKINFO}),no)
+ifneq ($(call tolower,${MKINFO}),no)
 realdo_all: ${INFOFILES}
 
 CLEANFILES +=	${INFOFILES}
@@ -53,13 +52,13 @@ define gen_destinfo
     ${INFONAME_${1}} ${INFONAME} $(notdir ${1}))
 endef
 
-destination_infos = $(foreach F,${INFOFILES},$(call gen_destinfo,${F}))
+destination_infos := $(foreach F,${INFOFILES},$(call gen_destinfo,${F}))
 
 infoinstall: ${destination_infos}
 .PRECIOUS: ${destination_infos}
 .PHONY: ${destination_infos}
 
-__infoinstall =
+define __infoinstall
 	${INSTALL} ${RENAME} ${PRESERVE} ${COPY} ${INSTPRIV} \
 	    -o $(call gen_install_switch,INFOOWN) \
 	    -g $(call gen_install_switch,INFOGRP) \
@@ -67,13 +66,14 @@ __infoinstall =
 	    ${.ALLSRC} ${.TARGET}
 	@${INSTALL_INFO} --remove --info-dir=${DESTDIR}${INFODIR} ${.TARGET}
 	${INSTALL_INFO} --info-dir=${DESTDIR}${INFODIR} ${.TARGET}
+endef
 
-ifeq ($(call tolower,${MKINSTALL},yes)
+ifeq ($(call tolower,${MKINSTALL}),yes)
 do_install1: infoinstall
 
 define gen_install_rule
 $(call gen_destinfo,${F}): ${F}
-	$(__infoinstall)
+	${__infoinstall}
 endef
 $(foreach F,$(sort ${INFOFILES}),$(eval $(value gen_install_rule)))
 
