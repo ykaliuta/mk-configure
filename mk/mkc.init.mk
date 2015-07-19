@@ -57,7 +57,7 @@ SRCS     ?=	${LIB}.c
 _srcsall +=	${SRCS}
 endif # defined(PROG)
 
-ifneq ($(filter %.cxx %.cpp %.C %.cc,${_srscall}),)
+ifneq ($(filter %.cxx %.cpp %.C %.cc,${_srcsall}),)
 src_type   +=	cxx
 LDREAL     ?=	${CXX}
 else ifneq ($(filter %.pas %.p,${_srcsall}),)

@@ -108,10 +108,10 @@ ifeq (${CC_TYPE},)
 ifneq ($(or ${PROGS},${LIB},${MKC_CHECK_PROTOTYPES}),)
 
 mkc.cc_type.environ = CC='${CC}' CXX='${CXX}' CPPFLAGS='${CPPFLAGS}' CFLAGS='${CFLAGS}' LDFLAGS='${LDFLAGS}' LDADD='${LDADD}' MKC_CACHEDIR='${MKC_CACHEDIR}' MKC_DELETE_TMPFILES='${MKC_DELETE_TMPFILES}' MKC_SHOW_CACHED='${MKC_SHOW_CACHED}' MKC_NOCACHE='${MKC_NOCACHE}' MKC_VERBOSE=1
-ifeq (${src_type},c)
+ifneq ($(filter c,${src_type}),)
 CC_TYPE  !=	env ${mkc.cc_type.environ} mkc_check_compiler
 endif
-ifeq (${src_type},cxx)
+ifneq ($(filter cxx,${src_type}),)
 CXX_TYPE !=	env ${mkc.cc_type.environ} mkc_check_compiler -x
 endif # src_type
 
