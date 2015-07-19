@@ -6,4 +6,4 @@
 .DEFAULT_GOAL := all
 
 .DEFAULT:
-	@unset ROOT_GROUP; ${MAKE} ${MAKEFLAGS} -I ${CURDIR}/mk -I ${CURDIR}/features -f main.mk ${MAKECMDGOALS}
+	@unset ROOT_GROUP; ${MAKE} -I ${CURDIR}/mk -I ${CURDIR}/features -f main.mk ${MAKECMDGOALS}
