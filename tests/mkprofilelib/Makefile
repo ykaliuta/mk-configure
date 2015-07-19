@@ -1,4 +1,4 @@
-.PATH: ../../examples/hello_cxxlib/cxxlib
+export PATH += ../../examples/hello_cxxlib/cxxlib
 
 MKPROFILELIB=	yes
 
